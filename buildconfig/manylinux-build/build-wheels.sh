@@ -1,13 +1,20 @@
 #!/bin/bash
 set -e -x
 
-export SUPPORTED_PYTHONS="cp27-cp27mu cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39"
 
 if [[ "$1" == "buildpypy" ]]; then
-	export SUPPORTED_PYTHONS="pp27-pypy_73 pp36-pypy36_pp73 pp37-pypy37_pp73"
+    export SUPPORTED_PYTHONS="cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39 cp310-cp310 cp311-cp311 cp312-cp312 pp37-pypy37_pp73 pp39-pypy39_pp73 pp38-pypy38_pp73"
+elif [[ "$1" == "buildpypy10" ]]; then
+    export SUPPORTED_PYTHONS="cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39 cp310-cp310"
+else
+    if [ `uname -m` == "aarch64" ] || [ `uname -m` == "ppc64le" ]; then
+       export SUPPORTED_PYTHONS="cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39 cp310-cp310 cp311-cp311 cp312-cp312"
+    else
+       export SUPPORTED_PYTHONS="cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39"
+    fi
 fi
 
-
+export PYGAME_DETECT_AVX2="yes-why-not"
 export PORTMIDI_INC_PORTTIME=1
 
 # To 'solve' this issue:
@@ -24,6 +31,7 @@ fi
 export CFLAGS="-g0 -O3"
 
 ls -la /io
+ls -la /opt/python/
 
 # Compile wheels
 for PYVER in $SUPPORTED_PYTHONS; do
@@ -34,6 +42,10 @@ for PYVER in $SUPPORTED_PYTHONS; do
 	    PYTHON="/opt/python/${PYVER}/bin/pypy"
 	fi
 
+    ${PYTHON} -m pip install Sphinx Cython==3.0.0
+    cd io
+    ${PYTHON} setup.py docs
+    cd ..
     ${PYTHON} -m pip wheel --global-option="build_ext" --global-option="-j4" -vvv /io/ -w wheelhouse/
 done
 
@@ -55,5 +67,5 @@ for PYVER in $SUPPORTED_PYTHONS; do
 	fi
 
     ${PYTHON} -m pip install pygame --no-index -f /io/buildconfig/manylinux-build/wheelhouse
-    (cd $HOME; ${PYTHON} -m pygame.tests --exclude opengl,music,timing)
+    (cd $HOME; ${PYTHON} -m pygame.tests -vv --exclude opengl,music,timing)
 done

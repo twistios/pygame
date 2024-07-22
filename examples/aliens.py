@@ -23,8 +23,9 @@ Controls
 
 """
 
-import random
 import os
+import random
+from typing import List
 
 # import basic pygame modules
 import pygame as pg
@@ -46,19 +47,17 @@ main_dir = os.path.split(os.path.abspath(__file__))[0]
 
 
 def load_image(file):
-    """ loads an image, prepares it for play
-    """
+    """loads an image, prepares it for play"""
     file = os.path.join(main_dir, "data", file)
     try:
         surface = pg.image.load(file)
     except pg.error:
-        raise SystemExit('Could not load image "%s" %s' % (file, pg.get_error()))
+        raise SystemExit(f'Could not load image "{file}" {pg.get_error()}')
     return surface.convert()
 
 
 def load_sound(file):
-    """ because pygame can be be compiled without mixer.
-    """
+    """because pygame can be compiled without mixer."""
     if not pg.mixer:
         return None
     file = os.path.join(main_dir, "data", file)
@@ -66,29 +65,28 @@ def load_sound(file):
         sound = pg.mixer.Sound(file)
         return sound
     except pg.error:
-        print("Warning, unable to load, %s" % file)
+        print(f"Warning, unable to load, {file}")
     return None
 
 
 # Each type of game object gets an init and an update function.
 # The update function is called once per frame, and it is when each object should
-# change it's current position and state.
+# change its current position and state.
 #
 # The Player object actually gets a "move" function instead of update,
 # since it is passed extra information about the keyboard.
 
 
 class Player(pg.sprite.Sprite):
-    """ Representing the player as a moon buggy type car.
-    """
+    """Representing the player as a moon buggy type car."""
 
     speed = 10
     bounce = 24
     gun_offset = -11
-    images = []
+    images: List[pg.Surface] = []
 
-    def __init__(self):
-        pg.sprite.Sprite.__init__(self, self.containers)
+    def __init__(self, *groups):
+        pg.sprite.Sprite.__init__(self, *groups)
         self.image = self.images[0]
         self.rect = self.image.get_rect(midbottom=SCREENRECT.midbottom)
         self.reloading = 0
@@ -112,15 +110,14 @@ class Player(pg.sprite.Sprite):
 
 
 class Alien(pg.sprite.Sprite):
-    """ An alien space ship. That slowly moves down the screen.
-    """
+    """An alien space ship. That slowly moves down the screen."""
 
     speed = 13
     animcycle = 12
-    images = []
+    images: List[pg.Surface] = []
 
-    def __init__(self):
-        pg.sprite.Sprite.__init__(self, self.containers)
+    def __init__(self, *groups):
+        pg.sprite.Sprite.__init__(self, *groups)
         self.image = self.images[0]
         self.rect = self.image.get_rect()
         self.facing = random.choice((-1, 1)) * Alien.speed
@@ -128,7 +125,7 @@ class Alien(pg.sprite.Sprite):
         if self.facing < 0:
             self.rect.right = SCREENRECT.right
 
-    def update(self):
+    def update(self, *args, **kwargs):
         self.rect.move_ip(self.facing, 0)
         if not SCREENRECT.contains(self.rect):
             self.facing = -self.facing
@@ -139,21 +136,20 @@ class Alien(pg.sprite.Sprite):
 
 
 class Explosion(pg.sprite.Sprite):
-    """ An explosion. Hopefully the Alien and not the player!
-    """
+    """An explosion. Hopefully the Alien and not the player!"""
 
     defaultlife = 12
     animcycle = 3
-    images = []
+    images: List[pg.Surface] = []
 
-    def __init__(self, actor):
-        pg.sprite.Sprite.__init__(self, self.containers)
+    def __init__(self, actor, *groups):
+        pg.sprite.Sprite.__init__(self, *groups)
         self.image = self.images[0]
         self.rect = self.image.get_rect(center=actor.rect.center)
         self.life = self.defaultlife
 
-    def update(self):
-        """ called every time around the game loop.
+    def update(self, *args, **kwargs):
+        """called every time around the game loop.
 
         Show the explosion surface for 'defaultlife'.
         Every game tick(update), we decrease the 'life'.
@@ -167,19 +163,18 @@ class Explosion(pg.sprite.Sprite):
 
 
 class Shot(pg.sprite.Sprite):
-    """ a bullet the Player sprite fires.
-    """
+    """a bullet the Player sprite fires."""
 
     speed = -11
-    images = []
+    images: List[pg.Surface] = []
 
-    def __init__(self, pos):
-        pg.sprite.Sprite.__init__(self, self.containers)
+    def __init__(self, pos, *groups):
+        pg.sprite.Sprite.__init__(self, *groups)
         self.image = self.images[0]
         self.rect = self.image.get_rect(midbottom=pos)
 
-    def update(self):
-        """ called every time around the game loop.
+    def update(self, *args, **kwargs):
+        """called every time around the game loop.
 
         Every tick we move the shot upwards.
         """
@@ -189,19 +184,19 @@ class Shot(pg.sprite.Sprite):
 
 
 class Bomb(pg.sprite.Sprite):
-    """ A bomb the aliens drop.
-    """
+    """A bomb the aliens drop."""
 
     speed = 9
-    images = []
+    images: List[pg.Surface] = []
 
-    def __init__(self, alien):
-        pg.sprite.Sprite.__init__(self, self.containers)
+    def __init__(self, alien, explosion_group, *groups):
+        pg.sprite.Sprite.__init__(self, *groups)
         self.image = self.images[0]
         self.rect = self.image.get_rect(midbottom=alien.rect.move(0, 5).midbottom)
+        self.explosion_group = explosion_group
 
-    def update(self):
-        """ called every time around the game loop.
+    def update(self, *args, **kwargs):
+        """called every time around the game loop.
 
         Every frame we move the sprite 'rect' down.
         When it reaches the bottom we:
@@ -211,29 +206,27 @@ class Bomb(pg.sprite.Sprite):
         """
         self.rect.move_ip(0, self.speed)
         if self.rect.bottom >= 470:
-            Explosion(self)
+            Explosion(self, self.explosion_group)
             self.kill()
 
 
 class Score(pg.sprite.Sprite):
-    """ to keep track of the score.
-    """
+    """to keep track of the score."""
 
-    def __init__(self):
-        pg.sprite.Sprite.__init__(self)
+    def __init__(self, *groups):
+        pg.sprite.Sprite.__init__(self, *groups)
         self.font = pg.font.Font(None, 20)
         self.font.set_italic(1)
-        self.color = pg.Color("white")
+        self.color = "white"
         self.lastscore = -1
         self.update()
         self.rect = self.image.get_rect().move(10, 450)
 
-    def update(self):
-        """ We only update the score in update() when it has changed.
-        """
+    def update(self, *args, **kwargs):
+        """We only update the score in update() when it has changed."""
         if SCORE != self.lastscore:
             self.lastscore = SCORE
-            msg = "Score: %d" % SCORE
+            msg = f"Score: {SCORE}"
             self.image = self.font.render(msg, 0, self.color)
 
 
@@ -291,36 +284,28 @@ def main(winstyle=0):
     all = pg.sprite.RenderUpdates()
     lastalien = pg.sprite.GroupSingle()
 
-    # assign default groups to each sprite class
-    Player.containers = all
-    Alien.containers = aliens, all, lastalien
-    Shot.containers = shots, all
-    Bomb.containers = bombs, all
-    Explosion.containers = all
-    Score.containers = all
-
     # Create Some Starting Values
-    global score
     alienreload = ALIEN_RELOAD
     clock = pg.time.Clock()
 
     # initialize our starting sprites
     global SCORE
-    player = Player()
-    Alien()  # note, this 'lives' because it goes into a sprite group
+    player = Player(all)
+    Alien(
+        aliens, all, lastalien
+    )  # note, this 'lives' because it goes into a sprite group
     if pg.font:
-        all.add(Score())
+        all.add(Score(all))
 
     # Run our main loop whilst the player is alive.
     while player.alive():
-
         # get input
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return
             if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
                 return
-            elif event.type == pg.KEYDOWN:
+            if event.type == pg.KEYDOWN:
                 if event.key == pg.K_f:
                     if not fullscreen:
                         print("Changing to FULLSCREEN")
@@ -352,8 +337,8 @@ def main(winstyle=0):
         player.move(direction)
         firing = keystate[pg.K_SPACE]
         if not player.reloading and firing and len(shots) < MAX_SHOTS:
-            Shot(player.gunpos())
-            if pg.mixer:
+            Shot(player.gunpos(), shots, all)
+            if pg.mixer and shoot_sound is not None:
                 shoot_sound.play()
         player.reloading = firing
 
@@ -361,35 +346,35 @@ def main(winstyle=0):
         if alienreload:
             alienreload = alienreload - 1
         elif not int(random.random() * ALIEN_ODDS):
-            Alien()
+            Alien(aliens, all, lastalien)
             alienreload = ALIEN_RELOAD
 
         # Drop bombs
         if lastalien and not int(random.random() * BOMB_ODDS):
-            Bomb(lastalien.sprite)
+            Bomb(lastalien.sprite, all, bombs, all)
 
         # Detect collisions between aliens and players.
         for alien in pg.sprite.spritecollide(player, aliens, 1):
-            if pg.mixer:
+            if pg.mixer and boom_sound is not None:
                 boom_sound.play()
-            Explosion(alien)
-            Explosion(player)
+            Explosion(alien, all)
+            Explosion(player, all)
             SCORE = SCORE + 1
             player.kill()
 
         # See if shots hit the aliens.
-        for alien in pg.sprite.groupcollide(shots, aliens, 1, 1).keys():
-            if pg.mixer:
+        for alien in pg.sprite.groupcollide(aliens, shots, 1, 1).keys():
+            if pg.mixer and boom_sound is not None:
                 boom_sound.play()
-            Explosion(alien)
+            Explosion(alien, all)
             SCORE = SCORE + 1
 
-        # See if alien boms hit the player.
+        # See if alien bombs hit the player.
         for bomb in pg.sprite.spritecollide(player, bombs, 1):
-            if pg.mixer:
+            if pg.mixer and boom_sound is not None:
                 boom_sound.play()
-            Explosion(player)
-            Explosion(bomb)
+            Explosion(player, all)
+            Explosion(bomb, all)
             player.kill()
 
         # draw the scene
@@ -402,9 +387,9 @@ def main(winstyle=0):
     if pg.mixer:
         pg.mixer.music.fadeout(1000)
     pg.time.wait(1000)
-    pg.quit()
 
 
 # call the "main" function if running this script
 if __name__ == "__main__":
     main()
+    pg.quit()

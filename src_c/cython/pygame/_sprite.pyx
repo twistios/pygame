@@ -57,7 +57,7 @@ in the game.
 Sprites and Groups manage their relationships with the add() and remove()
 methods. These methods can accept a single or multiple group arguments for
 membership.  The default initializers for these classes also take a
-single group or list of groups as argments for initial membership. It is safe
+single group or list of groups as arguments for initial membership. It is safe
 to repeatedly add and remove the same Sprite from a Group.
 
 While it is possible to design sprite and group classes that don't derive
@@ -91,10 +91,9 @@ Sprites are not thread safe, so lock them yourself if using threads.
 import pygame
 from pygame import Rect
 from pygame.time import get_ticks
-from operator import truth
 
 from cpython cimport PyObject_CallFunctionObjArgs, PyDict_SetItem, \
-    PyObject, PyList_SetSlice
+    PyObject
 
 # Python 3 does not have the callable function, but an equivalent can be made
 # with the hasattr function.
@@ -108,14 +107,14 @@ except:
     pass
 
 cdef extern from "_pygame.h" nogil:
-    ctypedef struct GAME_Rect:
+    ctypedef struct SDL_Rect:
         int x
         int y
         int w
         int h
 
     ctypedef class pygame.Rect [object pgRectObject]:
-        cdef GAME_Rect r
+        cdef SDL_Rect r
         cdef object weakreflist
 
 #import_pygame_rect()
@@ -140,14 +139,14 @@ cdef class Sprite:
 
     """
 
-    cdef public dict __g
+    cdef public set __g
     cdef public object image
     cdef public Rect rect
     cdef dict __dict__
 
     def __cinit__(self):
         self.__dict__ = {}
-        self.__g = {} # The groups the sprite is in
+        self.__g = set() # The groups the sprite is in
 
     def __init__(self, *groups):
         if groups:
@@ -189,11 +188,11 @@ cdef class Sprite:
             else:
                 self.remove(*group)
 
-    cpdef void add_internal(self, group):
-        self.__g[group] = 0
+    cpdef void add_internal(self, group) noexcept:
+        self.__g.add(group)
 
-    cpdef void remove_internal(self, group):
-        del self.__g[group]
+    cpdef void remove_internal(self, group) noexcept:
+        self.__g.remove(group)
 
     def update(self, *args, **kwargs):
         """method to control sprite behavior
@@ -242,7 +241,7 @@ cdef class Sprite:
 
         Returns True when the Sprite belongs to one or more Groups.
         """
-        return truth(self.__g)
+        return bool(self.__g)
 
     def __repr__(self):
         return "<%s sprite(in %d groups)>" % (self.__class__.__name__, len(self.__g))
@@ -347,16 +346,16 @@ cdef class AbstractGroup:
         """
         return list(self.spritedict)
 
-    cpdef void add_internal(self, sprite):
+    cpdef void add_internal(self, sprite) noexcept:
         self.spritedict[sprite] = 0
 
-    cpdef void remove_internal(self, sprite):
+    cpdef void remove_internal(self, sprite) noexcept:
         r = self.spritedict[sprite]
         if r:
             self.lostsprites.append(r)
         del self.spritedict[sprite]
 
-    cpdef bint has_internal(self, sprite):
+    cpdef bint has_internal(self, sprite) noexcept:
         return sprite in self.spritedict
 
     def copy(self):
@@ -421,8 +420,8 @@ cdef class AbstractGroup:
         """
         # This function behaves essentially the same as Group.add. It first
         # tries to handle each argument as an instance of the Sprite class. If
-        # that failes, then it tries to handle the argument as an iterable
-        # object. If that failes, then it tries to handle the argument as an
+        # that fails, then it tries to handle the argument as an iterable
+        # object. If that fails, then it tries to handle the argument as an
         # old-style sprite group. Lastly, if that fails, it assumes that the
         # normal Sprite methods should be used.
         for sprite in sprites:
@@ -559,8 +558,8 @@ cdef class AbstractGroup:
             self.remove_internal(<Sprite>s)
             s.remove_internal(self)
 
-    def __nonzero__(self):
-        return truth(self.sprites())
+    def __bool__(self):
+        return bool(self.sprites())
 
     def __len__(self):
         """return number of sprites in group
@@ -633,7 +632,7 @@ cdef class RenderUpdates(Group):
 cdef class OrderedUpdates(RenderUpdates):
     """RenderUpdates class that draws Sprites in order of addition
 
-    pygame.sprite.OrderedUpdates(*spites): return OrderedUpdates
+    pygame.sprite.OrderedUpdates(*sprites): return OrderedUpdates
 
     This class derives from pygame.sprite.RenderUpdates().  It maintains
     the order in which the Sprites were added to the Group for rendering.
@@ -651,11 +650,11 @@ cdef class OrderedUpdates(RenderUpdates):
     cpdef list sprites(self):
         return list(self._spritelist)
 
-    cpdef void add_internal(self, sprite):
+    cpdef void add_internal(self, sprite) noexcept:
         RenderUpdates.add_internal(self, sprite)
         self._spritelist.append(sprite)
 
-    cpdef void remove_internal(self, sprite):
+    cpdef void remove_internal(self, sprite) noexcept:
         RenderUpdates.remove_internal(self, sprite)
         self._spritelist.remove(sprite)
 
@@ -663,7 +662,7 @@ cdef class OrderedUpdates(RenderUpdates):
 cdef class LayeredUpdates(AbstractGroup):
     """LayeredUpdates Group handles layers, which are drawn like OrderedUpdates
 
-    pygame.sprite.LayeredUpdates(*spites, **kwargs): return LayeredUpdates
+    pygame.sprite.LayeredUpdates(*sprites, **kwargs): return LayeredUpdates
 
     This group is fully compatible with pygame.sprite.Sprite.
     New in pygame 1.8.0
@@ -698,7 +697,7 @@ cdef class LayeredUpdates(AbstractGroup):
 
         self.add(*sprites, **kwargs)
 
-    cpdef void add_internal(self, sprite, layer=None):
+    cpdef void add_internal(self, sprite, layer=None) noexcept:
         """Do not use this method directly.
 
         It is used by the group to add a sprite internally.
@@ -780,7 +779,7 @@ cdef class LayeredUpdates(AbstractGroup):
                         self.add_internal(sprite, layer)
                         sprite.add_internal(self)
 
-    cpdef void remove_internal(self, sprite):
+    cpdef void remove_internal(self, sprite) noexcept:
         """Do not use this method directly.
 
         The group uses it to add a sprite.
@@ -1004,7 +1003,7 @@ cdef class LayeredUpdates(AbstractGroup):
 cdef class LayeredDirty(LayeredUpdates):
     """LayeredDirty Group is for DirtySprites; subclasses LayeredUpdates
 
-    pygame.sprite.LayeredDirty(*spites, **kwargs): return LayeredDirty
+    pygame.sprite.LayeredDirty(*sprites, **kwargs): return LayeredDirty
 
     This group requires pygame.sprite.DirtySprite or any sprite that
     has the following attributes:
@@ -1036,7 +1035,7 @@ cdef class LayeredDirty(LayeredUpdates):
     def __init__(self, *sprites, **kwargs):
         """initialize group.
 
-        pygame.sprite.LayeredDirty(*spites, **kwargs): return LayeredDirty
+        pygame.sprite.LayeredDirty(*sprites, **kwargs): return LayeredDirty
 
         You can specify some additional attributes through kwargs:
             _use_update: True/False   (default is False)
@@ -1060,7 +1059,7 @@ cdef class LayeredDirty(LayeredUpdates):
                 if hasattr(self, key):
                     setattr(self, key, val)
 
-    cpdef void add_internal(self, sprite, layer=None):
+    cpdef void add_internal(self, sprite, layer=None) noexcept:
         """Do not use this method directly.
 
         It is used by the group to add a sprite internally.
@@ -1214,7 +1213,7 @@ cdef class LayeredDirty(LayeredUpdates):
 ##        # debug
 ##        print "               check: using dirty rects:", self._use_update
 
-        # emtpy dirty rects list
+        # empty dirty rects list
         _update[:] = []
 
         # -------
@@ -1279,7 +1278,22 @@ cdef class LayeredDirty(LayeredUpdates):
     def set_timing_treshold(self, time_ms):
         """set the treshold in milliseconds
 
+        DEPRECATED: misspelled 'threshold'
+
         set_timing_treshold(time_ms): return None
+
+        Defaults to 1000.0 / 80.0. This means that the screen will be painted
+        using the flip method rather than the update method if the update
+        method is taking so long to update the screen that the frame rate falls
+        below 80 frames per second.
+
+        """
+        self._time_threshold = time_ms
+
+    def set_timing_threshold(self, time_ms):
+        """set the threshold in milliseconds
+
+        (time_ms): return None
 
         Defaults to 1000.0 / 80.0. This means that the screen will be painted
         using the flip method rather than the update method if the update
@@ -1319,13 +1333,13 @@ cdef class GroupSingle(AbstractGroup):
         else:
             return []
 
-    cpdef void add_internal(self, sprite):
+    cpdef void add_internal(self, sprite) noexcept:
         if self.__sprite is not None:
             self.__sprite.remove_internal(self)
             self.remove_internal(<Sprite>self.__sprite)
         self.__sprite = sprite
 
-    def __nonzero__(self):
+    def __bool__(self):
         return self.__sprite is not None
 
     def _get_sprite(self):
@@ -1341,13 +1355,13 @@ cdef class GroupSingle(AbstractGroup):
                       None,
                       "The sprite contained in this group")
 
-    cpdef void remove_internal(self, sprite):
+    cpdef void remove_internal(self, sprite) noexcept:
         if sprite is self.__sprite:
             self.__sprite = None
         if sprite in self.spritedict:
             AbstractGroup.remove_internal(self, sprite)
 
-    cpdef bint has_internal(self, sprite):
+    cpdef bint has_internal(self, sprite) noexcept:
         return self.__sprite is sprite
 
     # Optimizations...
@@ -1479,7 +1493,7 @@ class collide_circle_ratio(object):
         The given ratio is expected to be a floating point value used to scale
         the underlying sprite radius before checking for collisions.
 
-        When the ratio is ratio=1.0, then it behaves exactly like the 
+        When the ratio is ratio=1.0, then it behaves exactly like the
         collide_circle method.
 
         """

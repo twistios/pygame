@@ -70,7 +70,7 @@ So let's begin by creating our screen list and fill it with a beautiful
 landscape of 1s and 2s. ::
 
   >>> screen = [1, 1, 2, 2, 2, 1]
-  >>> print screen
+  >>> print(screen)
   [1, 1, 2, 2, 2, 1]
 
 
@@ -80,7 +80,7 @@ that looks   like the number 8. Let's stick him near the middle of the map
 and see what   it looks like. ::
 
   >>> screen[3] = 8
-  >>> print screen
+  >>> print(screen)
   [1, 1, 2, 8, 2, 1]
 
 
@@ -99,16 +99,16 @@ an arbitrary position. Let's do it a little more officially this time. ::
 
   >>> playerpos = 3
   >>> screen[playerpos] = 8
-  >>> print screen
+  >>> print(screen)
   [1, 1, 2, 8, 2, 1]
 
 
-Now it is pretty easy to move him to a new position. We simple change
+Now it is pretty easy to move him to a new position. We simply change
 the  value of playerpos, and draw him on the screen again. ::
 
   >>> playerpos = playerpos - 1
   >>> screen[playerpos] = 8
-  >>> print screen
+  >>> print(screen)
   [1, 1, 8, 8, 2, 1]
 
 
@@ -117,7 +117,7 @@ in his new position. This is exactly the reason we need to "erase" the hero
 in his old position before we draw him in the new position. To erase him,
 we need to change that value in the list back to what it was before the hero
 was there. That means we need to keep track of the values on the screen before
-the hero replaced them. There's several way you could do this, but the easiest
+the hero replaced them. There's several ways you could do this, but the easiest
 is usually to keep a separate copy of the screen background. This means
 we  need to make some changes to our little game.
 
@@ -134,11 +134,11 @@ After that we can finally draw our hero back onto the screen. ::
   >>> screen = [0]*6                         #a new blank screen
   >>> for i in range(6):
   ...     screen[i] = background[i]
-  >>> print screen
+  >>> print(screen)
   [1, 1, 2, 2, 2, 1]
   >>> playerpos = 3
   >>> screen[playerpos] = 8
-  >>> print screen
+  >>> print(screen)
   [1, 1, 2, 8, 2, 1]
 
 
@@ -156,12 +156,12 @@ from the background onto the screen. Then we will draw the character in his
 new position on the screen
 
 
-  >>> print screen
+  >>> print(screen)
   [1, 1, 2, 8, 2, 1]
   >>> screen[playerpos] = background[playerpos]
   >>> playerpos = playerpos - 1
   >>> screen[playerpos] = 8
-  >>> print screen
+  >>> print(screen)
   [1, 1, 8, 2, 2, 1]
 
 
@@ -171,7 +171,7 @@ same  code to move him to the left again. ::
   >>> screen[playerpos] = background[playerpos]
   >>> playerpos = playerpos - 1
   >>> screen[playerpos] = 8
-  >>> print screen
+  >>> print(screen)
   [1, 8, 2, 2, 2, 1]
 
 
@@ -262,7 +262,7 @@ represent the positions of our objects with the Rects.
 Also know that many functions in pygame expect Rect arguments. All of these
 functions can also accept a simple tuple of 4 elements (left, top, width,
 height). You aren't always required to use these Rect objects, but you will
-mainly want to. Also, the blit() function can accept a Rect as it's position
+mainly want to. Also, the blit() function can accept a Rect as its position
 argument, it simply uses the topleft corner of the Rect as the real position.
 
 
@@ -292,6 +292,7 @@ pixels at a time. Here is the code to make an object move smoothly across
 the screen. Based on what we already now know, this should look pretty simple. ::
 
   >>> screen = create_screen()
+  >>> clock = pygame.time.Clock()            #get a pygame clock object
   >>> player = load_player_image()
   >>> background = load_background_image()
   >>> screen.blit(background, (0, 0))        #draw the background
@@ -303,7 +304,7 @@ the screen. Based on what we already now know, this should look pretty simple. :
   ...     position = position.move(2, 0)     #move player
   ...     screen.blit(player, position)      #draw new player
   ...     pygame.display.update()            #and show it all
-  ...     pygame.time.delay(100)             #stop the program for 1/10 second
+  ...     clock.tick(60)                     #update 60 times per second
 
 
 There you have it. This is all the code that is needed to smoothly animate
@@ -312,7 +313,8 @@ Another benefit of doing the background this way, the image for the player
 can have transparency or cutout sections and it will still draw correctly
 over the background (a free bonus).
 
-We also throw in a call to pygame.time.delay() at the end of our loop above.
+We also throw in a call to pygame.time.Clock() to grab the clock element.
+With it, we can call clock.tick() to set the framerate in frames per second.
 This slows down our program a little, otherwise it might run so fast you might
 not see it.
 
@@ -373,18 +375,17 @@ the program responds to the different events. Here's what the code should
 look like. Instead of looping for 100 frames, we'll keep looping until the
 user asks us to stop. ::
 
-  >>> while 1:
+  >>> while True:
   ...     for event in pygame.event.get():
-  ...         if event.type in (QUIT, KEYDOWN):
+  ...         if event.type == pygame.QUIT:
   ...             sys.exit()
   ...     move_and_draw_all_game_objects()
 
 
 What this code simply does is, first loop forever, then check if there are
-any events from the user. We exit the program if the user presses the keyboard
-or the close button on the window. After we've checked all the events we
-move and draw our game objects. (We'll also erase them before they move,
-too)
+any events from the user. We exit the program if the user presses the close 
+button on the window. After we've checked all the events we move and draw 
+our game objects. (We'll also erase them before they move, too)
 
 
 Moving Multiple Images
@@ -404,7 +405,7 @@ Here's the python code to create our class. ::
   ...         self.image = image
   ...         self.pos = image.get_rect().move(0, height)
   ...     def move(self):
-  ...         self.pos = self.pos.move(0, self.speed)
+  ...         self.pos = self.pos.move(self.speed, 0)
   ...         if self.pos.right > 600:
   ...             self.pos.left = 0
 
@@ -421,6 +422,7 @@ Now with our new object class, we can put together the entire game. Here
 is what the main function for our program will look like. ::
 
   >>> screen = pygame.display.set_mode((640, 480))
+  >>> clock = pygame.time.Clock()            #get a pygame clock object
   >>> player = pygame.image.load('player.bmp').convert()
   >>> background = pygame.image.load('background.bmp').convert()
   >>> screen.blit(background, (0, 0))
@@ -428,9 +430,9 @@ is what the main function for our program will look like. ::
   >>> for x in range(10):                    #create 10 objects</i>
   ...     o = GameObject(player, x*40, x)
   ...     objects.append(o)
-  >>> while 1:
+  >>> while True:
   ...     for event in pygame.event.get():
-  ...         if event.type in (QUIT, KEYDOWN):
+  ...         if event.type == pygame.QUIT:
   ...             sys.exit()
   ...     for o in objects:
   ...         screen.blit(background, o.pos, o.pos)
@@ -438,7 +440,7 @@ is what the main function for our program will look like. ::
   ...         o.move()
   ...         screen.blit(o.image, o.pos)
   ...     pygame.display.update()
-  ...     pygame.time.delay(100)
+  ...     clock.tick(60)
 
 
 And there it is. This is the code we need to animate 10 objects on the screen.
@@ -447,6 +449,134 @@ all the objects and draw all the objects. In order to do things properly,
 we need to erase all the objects before drawing any of them. In our sample
 here it may not matter, but when objects are overlapping, using two loops
 like this becomes important.
+
+
+Preparing for Improved User Input
+---------------------------------
+
+With all keyboard input terminating the program, that's not very interactive.
+Let's add some extra user input!
+
+First we should create a unique character that the player will control. We
+can do that in much the same way we created the other movable entities. Let's
+call the player object p. We can already move any object, but, a player should
+have more input than simply moving right. To accommodate this, let's revamp
+our move function under our GameObject class. ::
+
+  >>> def move(self, up=False, down=False, left=False, right=False):
+  ...   if right:
+  ...       self.pos.right += self.speed
+  ...   if left:
+  ...       self.pos.right -= self.speed
+  ...   if down:
+  ...       self.pos.top += self.speed
+  ...   if up:
+  ...       self.pos.top -= self.speed   
+  ...   if self.pos.right > WIDTH:
+  ...       self.pos.left = 0
+  ...   if self.pos.top > HEIGHT-SPRITE_HEIGHT:
+  ...       self.pos.top = 0
+  ...   if self.pos.right < SPRITE_WIDTH:
+  ...       self.pos.right = WIDTH
+  ...   if self.pos.top < 0:
+  ...       self.pos.top = HEIGHT-SPRITE_HEIGHT
+
+There's certainly a lot more going on here, so let's take it one step at a time.
+First, we've added some default values into the move function, declared as up,
+down, left, and right. These booleans will allow us to specifically select a 
+direction that the object is moving in. The first part, where we go through and
+check True for each variable, is where we will add to the position of the object,
+much like before. Right controls horizontal, and top controls vertical positions.
+
+Additionally, we've removed the magic number present previously, and replaced it
+with the constants WIDTH, HEIGHT, SPRITE_WIDTH, and SPRITE_HEIGHT. These values
+represent the screen width and height, along with the width and height of the object
+displayed on the screen.
+
+The second part, where the position is being checked, ensures that the position
+is within the confines of our screen. With this in place, we need to make sure that
+when one of our other objects calls move, we set right to true.
+
+
+Adding the User Input
+---------------------
+
+We've already seen that pygame has event handling, and we know that KEYDOWN is
+an event in this loop. We could, under KEYDOWN, assert the key press matches an
+arrow key, where we would then call move. However, this movement will only occur
+once every time a key is pressed, and it therefore will be extremely choppy and
+unpleasant. 
+
+For this, we can use pygame.key.get_pressed(), which returns a list of all keys,
+and whether or not they are currently pressed. Since we want these key presses
+to be maintained whether an event is currently happening or not, we should put
+it outside of the main event handling loop, but still within our game loop.
+Our functionality will look like this. ::
+
+  >>> keys = pygame.key.get_pressed()
+  >>> if keys[pygame.K_UP]:
+  ...     p.move(up=True)
+  >>> if keys[pygame.K_DOWN]:
+  ...     p.move(down=True)
+  >>> if keys[pygame.K_LEFT]:
+  ...     p.move(left=True)
+  >>> if keys[pygame.K_RIGHT]:
+  ...     p.move(right=True)
+
+We simply get our list of keys pressed, called keys. We can then check the index
+at the key code position to see if it is held down. For more key codes, I recommend
+checking out the documentation on pygame.key.
+
+When up is held, we move our object, p, up. When down is held, we move down. Rinse and
+repeat for all cases, and we're good to go!
+
+
+Putting it all Together One More time
+-------------------------------------
+
+Now that we're finished with the player functionality, let's take one last look to make
+sure we understand everything. ::
+
+  >>> screen = pygame.display.set_mode((640, 480))
+  >>> clock = pygame.time.Clock()            #get a pygame clock object
+  >>> player = pygame.image.load('player.bmp').convert()
+  >>> entity = pygame.image.load('alien1.bmp').convert()
+  >>> background = pygame.image.load('background.bmp').convert()
+  >>> screen.blit(background, (0, 0))
+  >>> objects = []
+  >>> p = GameObject(player, 10, 3)          #create the player object
+  >>> for x in range(10):                    #create 10 objects</i>
+  ...     o = GameObject(entity, x*40, x)
+  ...     objects.append(o)
+  >>> while True:
+  ...     screen.blit(background, p.pos, p.pos)
+  ...     for o in objects:
+  ...         screen.blit(background, o.pos, o.pos)
+  ...     keys = pygame.key.get_pressed()
+  ...     if keys[pygame.K_UP]:
+  ...         p.move(up=True)
+  ...     if keys[pygame.K_DOWN]:
+  ...         p.move(down=True)
+  ...     if keys[pygame.K_LEFT]:
+  ...         p.move(left=True)
+  ...     if keys[pygame.K_RIGHT]:
+  ...         p.move(right=True)
+  ...     for event in pygame.event.get():
+  ...         if event.type == pygame.QUIT:
+  ...             sys.exit()
+  ...     screen.blit(p.image, p.pos)
+  ...     for o in objects:
+  ...         o.move()
+  ...         screen.blit(o.image, o.pos)
+  ...     pygame.display.update()
+  ...     clock.tick(60)
+
+A few things not mentioned earlier: we load in a second image and call it entity,
+and we use that for all objects that aren't the player, which uses the player
+image defined earlier. 
+
+And that's all there is to it! Now we have a fully functional player object that
+is controlled using the arrow keys!
 
 
 You Are On Your Own From Here

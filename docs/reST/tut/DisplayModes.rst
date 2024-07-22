@@ -41,7 +41,7 @@ There are advantages and disadvantages to setting the display mode in this
 manner.
 The advantage is that if your game requires a specific display mode,
 your game will run on platforms that do not support your requirements.
-It also makes life easier when your getting something started,
+It also makes life easier when you're getting something started,
 it is always easy to go back later and make the mode selection a little more
 particular.
 The disadvantage is that what you request is not always what you will get.
@@ -61,8 +61,13 @@ setting it again will change the current mode.
 Setting the display mode is handled with the function
 :func:`pygame.display.set_mode((width, height), flags, depth)
 <pygame.display.set_mode>`.
-The only required argument in this function is a sequence containing
-the width and height of the new display mode.
+If the width and height of the new display mode is not passed, 
+the created surface will have the same size as the current screen 
+resolution. 
+If only the width or height is set to 0, the surface will have the 
+same respective width or height as the screen resolution. 
+Note that in older versions of Pygame using a SDL version prior to 1.2.10,
+not passing in the width and height will raise an exception.
 The depth flag is the requested bits per pixel for the surface.
 If the given depth is 8, *pygame* will create a color-mapped surface.
 When given a higher bit depth, *pygame* will use a packed color mode.
@@ -72,8 +77,6 @@ The default value for depth is 0.
 When given an argument of 0, *pygame* will select the best bit depth to use,
 usually the same as the system's current bit depth.
 The flags argument lets you control extra features for the display mode.
-You can create the display surface in hardware memory with the
-:any:`HWSURFACE <pygame.display.set_mode>` flag.
 Again, more information about this is found in the *pygame* reference documents.
 
 
@@ -89,9 +92,9 @@ First, :func:`pygame.display.Info() <pygame.display.Info>`
 will return a special object type of VidInfo,
 which can tell you a lot about the graphics driver capabilities.
 The function
-:func:`pygame.display.list_modes(depth, flags) <pygame.display.list_modes>`
+:func:`pygame.display.list_modes(depth, flags, display) <pygame.display.list_modes>`
 can be used to find the supported graphic modes by the system.
-:func:`pygame.display.mode_ok((width, height), flags, depth)
+:func:`pygame.display.mode_ok((width, height), flags, depth, display)
 <pygame.display.mode_ok>` takes the same arguments as
 :func:`set_mode() <pygame.display.set_mode>`,
 but returns the closest matching bit depth to the one you request.
@@ -106,7 +109,7 @@ since *pygame* will need to convert every update you make to the
 "real" display mode. The best bet is to always let *pygame*
 choose the best bit depth,
 and convert all your graphic resources to that format when they are loaded.
-You let *pygame* choose it's bit depth by calling
+You let *pygame* choose its bit depth by calling
 :func:`set_mode() <pygame.display.set_mode>`
 with no depth argument or a depth of 0,
 or you can call
@@ -121,7 +124,7 @@ You can find the depth of the current desktop if you get a VidInfo object
 before ever setting your display mode.
 
 After setting the display mode,
-you can find out information about it's settings by getting a VidInfo object,
+you can find out information about its settings by getting a VidInfo object,
 or by calling any of the Surface.get* methods on the display surface.
 
 
@@ -133,23 +136,30 @@ display mode.
 You can find more information about these functions in the display module
 documentation.
 
-  :func:`pygame.display.mode_ok(size, flags, depth) <pygame.display.mode_ok>`
+  :func:`pygame.display.mode_ok(size, flags, depth, display) <pygame.display.mode_ok>`
 
-    This function takes the exact same arguments as pygame.display.set_mode().
+    This function takes the same arguments as pygame.display.set_mode() with the
+    exclusion of vsync.
     It returns the best available bit depth for the mode you have described.
     If this returns zero,
     then the desired display mode is not available without emulation.
 
-  :func:`pygame.display.list_modes(depth, flags) <pygame.display.list_modes>`
+  :func:`pygame.display.list_modes(depth, flags, display) <pygame.display.list_modes>`
 
     Returns a list of supported display modes with the requested
-    depth and flags.
+    depth, flags, and display.
     An empty list is returned when there are no modes.
     The flags argument defaults to :any:`FULLSCREEN <pygame.display.set_mode>`\ .
     If you specify your own flags without :any:`FULLSCREEN <pygame.display.set_mode>`\ ,
     you will likely get a return value of -1.
     This means that any display size is fine, since the display will be windowed.
     Note that the listed modes are sorted largest to smallest.
+    The display index 0 means the default display is used.
+
+  :func:`pygame.display.get_desktop_sizes() <pygame.display.get_desktop_sizes>`
+    This function returns the sizes of the currently configured virtual desktops 
+    as a list of (x, y) tuples of integers and should be used to replace many use cases 
+    of pygame.display.list_modes() whenever applicable.
 
   :func:`pygame.display.Info() <pygame.display.Info>`
 
@@ -161,18 +171,18 @@ documentation.
       >>> import pygame.display
       >>> pygame.display.init()
       >>> info = pygame.display.Info()
-      >>> print info
-      <VideoInfo(hw = 1, wm = 1,video_mem = 27354
-                 blit_hw = 1, blit_hw_CC = 1, blit_hw_A = 0,
-                 blit_sw = 1, blit_sw_CC = 1, blit_sw_A = 0,
-                 bitsize  = 32, bytesize = 4,
-                 masks =  (16711680, 65280, 255, 0),
-                 shifts = (16, 8, 0, 0),
-                 losses =  (0, 0, 0, 8)>
+      >>> print(info)
+      <VideoInfo(hw = 0, wm = 1,video_mem = 0
+              blit_hw = 0, blit_hw_CC = 0, blit_hw_A = 0,
+              blit_sw = 0, blit_sw_CC = 0, blit_sw_A = 0,
+              bitsize  = 32, bytesize = 4,
+              masks =  (16711680, 65280, 255, 0),
+              shifts = (16, 8, 0, 0),
+              losses =  (0, 0, 0, 8),
+              current_w = 1920, current_h = 1080
+      >
 
 You can test all these flags as simply members of the VidInfo object.
-The different blit flags tell if hardware acceleration is supported when
-blitting from the various types of surfaces to a hardware surface.
 
 
 Examples
@@ -181,19 +191,19 @@ Examples
 Here are some examples of different methods to init the graphics display.
 They should help you get an idea of how to go about setting your display mode. ::
 
-  >>> #give me the best depth with a 640 x 480 windowed display
+  >>> # give me the best depth with a 640 x 480 windowed display
   >>> pygame.display.set_mode((640, 480))
 
-  >>> #give me the biggest 16-bit display available
+  >>> # give me the biggest 16-bit display available
   >>> modes = pygame.display.list_modes(16)
   >>> if not modes:
-  ...     print '16-bit not supported'
+  ...     print('16-bit not supported')
   ... else:
-  ...     print 'Found Resolution:', modes[0]
+  ...     print('Found Resolution:', modes[0])
   ...     pygame.display.set_mode(modes[0], FULLSCREEN, 16)
 
-  >>> #need an 8-bit surface, nothing else will do
+  >>> # need an 8-bit surface, nothing else will do
   >>> if pygame.display.mode_ok((800, 600), 0, 8) != 8:
-  ...     print 'Can only work with an 8-bit display, sorry'
+  ...     print('Can only work with an 8-bit display, sorry')
   ... else:
   ...     pygame.display.set_mode((800, 600), 0, 8)

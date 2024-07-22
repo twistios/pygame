@@ -38,6 +38,11 @@ The ``pygame.KEYDOWN`` event has the additional attributes ``unicode`` and
 The following is a list of all the constants (from :mod:`pygame.locals`) used to
 represent keyboard keys.
 
+Portability note: The integers for key constants differ between pygame 1 and 2.
+Always use key constants (``K_a``) rather than integers directly (``97``) so
+that your key handling code works well on both pygame 1 and pygame 2.
+
+
 ::
 
       pygame
@@ -176,6 +181,7 @@ represent keyboard keys.
       K_MENU                menu
       K_POWER               power
       K_EURO                Euro
+      K_AC_BACK             Android back button
 
 
 .. _key-modifiers-label:
@@ -250,7 +256,7 @@ for ``KMOD_NONE``, which should be compared using equals ``==``). For example:
 
    Returns a sequence of boolean values representing the state of every key on
    the keyboard. Use the key constant values to index the array. A ``True``
-   value means the that button is pressed.
+   value means that the button is pressed.
 
    .. note::
       Getting the list of pushed buttons with this function is not the proper
@@ -260,6 +266,15 @@ for ``KMOD_NONE``, which should be compared using equals ``==``). For example:
       translate these pushed keys into a fully translated character value. See
       the ``pygame.KEYDOWN`` events on the :mod:`pygame.event` queue for this
       functionality.
+   
+   .. versionadded:: 2.2.0
+      The collection of bools returned by ``get_pressed`` can not be iterated
+      over because the indexes of the internal tuple does not correspond to the 
+      keycodes.
+
+   .. versionadded:: 2.5.0
+      Iteration over the collection of bools returned by ``get_pressed`` is now
+      restored. However it still does not make sense to iterate over it. Currently.
 
    .. ## pygame.key.get_pressed ##
 
@@ -326,9 +341,28 @@ for ``KMOD_NONE``, which should be compared using equals ``==``). For example:
 .. function:: name
 
    | :sl:`get the name of a key identifier`
-   | :sg:`name(key) -> string`
+   | :sg:`name(key, use_compat=True) -> str`
 
    Get the descriptive name of the button from a keyboard button id constant.
+   Returns an empty string (``""``) if the key is not found.
+
+   If ``use_compat`` argument is ``True`` (which is the default), this function
+   returns the legacy name of a key where applicable. The return value is
+   expected to be the same across different pygame versions (provided the
+   corresponding key constant exists and is unique). If the return value is
+   passed to the ``key_code`` function, the original constant will be returned.
+
+   **Experimental:** ``use_compat`` parameter still in development for testing and feedback. It may change.
+   `Please leave use_compat feedback with authors <https://github.com/pygame/pygame/pull/3312>`_
+
+   If this argument is ``False``, the returned name may be prettier to display
+   and may cover a wider range of keys than with ``use_compat``, but there are
+   no guarantees that this name will be the same across different pygame
+   versions. If the name returned is passed to the ``key_code`` function, the
+   original constant is returned back (this is an implementation detail which
+   may change later, do not rely on this)
+
+   .. versionchanged:: 2.1.3 Added ``use_compat`` argument and guaranteed API stability for it
 
    .. ## pygame.key.name ##
 
@@ -350,9 +384,6 @@ for ``KMOD_NONE``, which should be compared using equals ``==``). For example:
         True
 
    :raises ValueError: if the key name is not known.
-   :raises NotImplementedError: if used with SDL 1.
-
-   .. ## pygame.key.key_code ##
 
    .. versionadded:: 2.0.0
 
@@ -360,11 +391,21 @@ for ``KMOD_NONE``, which should be compared using equals ``==``). For example:
 
 .. function:: start_text_input
 
-   | :sl:`start handling IME compositions`
+   | :sl:`start handling Unicode text input events`
    | :sg:`start_text_input() -> None`
 
    Start receiving ``pygame.TEXTEDITING`` and ``pygame.TEXTINPUT``
-   events to handle IME.
+   events. If applicable, show the on-screen keyboard or IME editor.
+
+   For many languages, key presses will automatically generate a
+   corresponding ``pygame.TEXTINPUT`` event. Special keys like
+   escape or function keys, and certain key combinations will not
+   generate ``pygame.TEXTINPUT`` events.
+
+   In other languages, entering a single symbol may require multiple
+   key presses, or a language-specific user interface. In this case,
+   ``pygame.TEXTINPUT`` events are preferable to ``pygame.KEYDOWN``
+   events for text input.
 
    A ``pygame.TEXTEDITING`` event is received when an IME composition
    is started or changed. It contains the composition ``text``, ``length``,
@@ -373,7 +414,7 @@ for ``KMOD_NONE``, which should be compared using equals ``==``). For example:
    When the composition is committed (or non-IME input is received),
    a ``pygame.TEXTINPUT`` event is generated.
 
-   Normal ``pygame.TEXTINPUT`` events are not dependent on this.
+   Text input events handling is on by default.
 
    .. versionadded:: 2.0.0
 
@@ -381,13 +422,19 @@ for ``KMOD_NONE``, which should be compared using equals ``==``). For example:
 
 .. function:: stop_text_input
 
-   | :sl:`stop handling IME compositions`
+   | :sl:`stop handling Unicode text input events`
    | :sg:`stop_text_input() -> None`
 
    Stop receiving ``pygame.TEXTEDITING`` and ``pygame.TEXTINPUT``
-   events to handle IME.
+   events. If an on-screen keyboard or IME editor was shown with
+   ``pygame.key.start_text_input()``, hide it again.
 
-   Normal ``pygame.TEXTINPUT`` events are not dependent on this.
+   Text input events handling is on by default.
+
+   To avoid triggering the IME editor or the on-screen keyboard
+   when the user is holding down a key during gameplay, text input
+   should be disabled once text entry is finished, or when the user
+   clicks outside of a text box.
 
    .. versionadded:: 2.0.0
 
@@ -400,8 +447,6 @@ for ``KMOD_NONE``, which should be compared using equals ``==``). For example:
 
    This sets the rectangle used for typing with an IME.
    It controls where the candidate list will open, if supported.
-
-   Normal ``pygame.TEXTINPUT`` events are not dependent on this.
 
    .. versionadded:: 2.0.0
 

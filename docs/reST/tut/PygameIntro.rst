@@ -18,8 +18,9 @@ Python Pygame Introduction
 
 This article is an introduction to the `pygame library <http://www.pygame.org>`_
 for `Python programmers <https://www.python.org/>`_.
-The original version appeared in the `Py Zine <http://pyzine.com/?p=18>`_,
-volume 1 issue 3. This version contains minor revisions, to
+The original version appeared in the `PyZine volume 1 issue 3
+<https://web.archive.org/web/20030810011958/http://store.pyzine.com:80/article.phtml?a=2>`_.
+This version contains minor revisions, to
 create an all-around better article. Pygame is a Python extension
 library that wraps the `SDL <http://www.libsdl.org>`_ library
 and its helpers.
@@ -65,31 +66,30 @@ along, and a complete breakdown follows.
    :class: inlined-right
 
 .. code-block:: python
-   :linenos:
-
+      
    import sys, pygame
    pygame.init()
-
+   
    size = width, height = 320, 240
    speed = [2, 2]
    black = 0, 0, 0
-
+   
    screen = pygame.display.set_mode(size)
-
+   
    ball = pygame.image.load("intro_ball.gif")
    ballrect = ball.get_rect()
-
-   while 1:
+   
+   while True:
        for event in pygame.event.get():
            if event.type == pygame.QUIT: sys.exit()
-
+   
        ballrect = ballrect.move(speed)
        if ballrect.left < 0 or ballrect.right > width:
            speed[0] = -speed[0]
        if ballrect.top < 0 or ballrect.bottom > height:
            speed[1] = -speed[1]
-
-       screen.fill(black)
+       
+       screen.fill("black")
        screen.blit(ball, ballrect)
        pygame.display.flip()
 
@@ -98,7 +98,11 @@ First we see importing and initializing pygame is nothing noteworthy.
 The ``import pygame`` imports the package with all the available
 pygame modules.
 The call to ``pygame.init()`` initializes each of these modules.
-
+Make sure the gif file of the bouncing ball is in the same folder
+as the code block.
+On :clr:`line 4` we set the size of the display window, for best
+results you can change these numbers to match your own monitor's
+resolution.
 On :clr:`line 8` we create a
 graphical window with the call to ``pygame.display.set_mode()``.
 Pygame and SDL make this easy by defaulting to the best graphics modes

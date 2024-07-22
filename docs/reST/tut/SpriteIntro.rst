@@ -30,8 +30,8 @@ you running, but you'll probably need a bit more explanation of how to use
 
 Several of the pygame examples (like "chimp" and "aliens") have been updated to
 use the sprite module. You may want to look into those first to see what this
-sprite module is all about. The chimp module even has it's own line-by-line
-tutorial, which may help get more an understanding of programming with python
+sprite module is all about. The chimp module even has its own line-by-line
+tutorial, which may help get more understanding of programming with python
 and pygame.
 
 Note that this introduction will assume you have a bit of experience
@@ -84,7 +84,7 @@ You can also change the ``Group`` membership for the ``Sprite`` with the
 There is also a :meth:`groups() <pygame.sprite.Sprite.groups>` method,
 which returns a list of the current groups containing the sprite.
 
-When using the your Sprite classes it's best to think of them as "valid" or
+When using your Sprite classes it's best to think of them as "valid" or
 "alive" when they are belonging to one or more ``Groups``. When you remove the
 instance from all groups pygame will clean up the object. (Unless you have your
 own references to the instance somewhere else.) The :meth:`kill()
@@ -161,7 +161,7 @@ separate group. Then when you need to access all the enemies that are near the
 player, you already have a list of them, instead of going through a list of all
 the enemies, checking for the "close_to_player" flag. Later on your game could
 add multiple players, and instead of adding more "close_to_player2",
-"close_to_player3" attributes, you can easily add them to different groups or
+"close_to_player3" attributes, you can easily add them to different groups for
 each player.
 
 Another important benefit of using the ``Sprites`` and ``Groups`` is that the groups
@@ -258,16 +258,16 @@ Most of the time you will just want to use the ``RenderUpdates`` class here.
 Since you will also want to pass this list of changes to the
 ``display.update()`` function.
 
-The ``RenderUpdates`` class also does a good job an minimizing overlapping
+The ``RenderUpdates`` class also does a good job at minimizing overlapping
 areas in the list of updated rectangles. If the previous position and current
 position of an object overlap, it will merge them into a single rectangle.
-Combine this with the fact that is properly handles deleted objects and this is
+Combined with the fact that it properly handles deleted objects, this is
 one powerful ``Group`` class. If you've written a game that manages the changed
-rectangles for the objects in a game, you know this the cause for a lot of
+rectangles for the objects in a game, you know this is the cause for a lot of
 messy code in your game. Especially once you start to throw in objects that can
-be deleted at any time. All this work is reduced down to a ``clear()`` and
+be deleted at any time. All this work is reduced to a ``clear()`` and
 ``draw()`` method with this monster class. Plus with the overlap checking, it
-is likely faster than if you did it yourself.
+is likely faster than when you did it manually.
 
 Also note that there's nothing stopping you from mixing and matching these
 render groups in your game. You should definitely use multiple rendering groups
@@ -285,7 +285,7 @@ can easily grab the source code for them, and modify them as needed.
 
 Here's a summary of what they are, and what they do.
 
-  :func:`spritecollide(sprite, group, dokill) -> list <pygame.sprite.spritecollide>`
+  :func:`spritecollide(sprite, group, dokill, collided = None) -> list <pygame.sprite.spritecollide>`
 
     This checks for collisions between a single sprite and the sprites in a group.
     It requires a "rect" attribute for all the sprites used. It returns a list of
@@ -304,9 +304,9 @@ Here's a summary of what they are, and what they do.
     bomb that did collide, it plays a "boom" sound effect, and creates a new
     ``Explosion`` where the bomb was. (Note, the ``Explosion`` class here knows to
     add each instance to the appropriate class, so we don't need to store it in a
-    variable, that last line might feel a little "funny" to you python programmers.
+    variable, that last line might feel a little "funny" to you python programmers.)
 
-  :func:`groupcollide(group1, group2, dokill1, dokill2) -> dictionary <pygame.sprite.groupcollide>`
+  :func:`groupcollide(group1, group2, dokill1, dokill2, collided = None) -> dictionary <pygame.sprite.groupcollide>`
 
     This is similar to the ``spritecollide`` function, but a little more complex.
     It checks for collisions for all the sprites in one group, to the sprites in
@@ -409,7 +409,7 @@ ordinary python container. (This is important, because several sprite methods
 can take an argument of a single group, or a sequence of groups. Since they
 both look similar, this is the most flexible way to "see" the difference.)
 
-You should through the code for the sprite module. While the code is a bit
+You should go through the code for the sprite module. While the code is a bit
 "tuned", it's got enough comments to help you follow along.  There's even a
 TODO section in the source if you feel like contributing.
 

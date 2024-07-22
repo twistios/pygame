@@ -9,8 +9,7 @@
 | :sl:`pygame module for drawing shapes`
 
 Draw several simple shapes to a surface. These functions will work for
-rendering to any format of surface. Rendering to hardware surfaces will be
-slower than regular software surfaces.
+rendering to any format of surface.
 
 Most of the functions take a width argument to represent the size of stroke
 (thickness) around the edge of the shape. If a width of 0 is passed the shape
@@ -64,12 +63,12 @@ object around the draw calls (see :func:`pygame.Surface.lock` and
          | if ``width > 0``, used for line thickness
          | if ``width < 0``, nothing will be drawn
          |
+      
+      .. versionchanged:: 2.1.1 
+          Drawing rects with width now draws the width correctly inside the 
+          rect's area, rather than using an internal call to draw.lines(), 
+          which had half the width spill outside the rect area.
 
-         .. note::
-            When using ``width`` values ``> 1``, the edge lines will grow
-            outside the original boundary of the rect. For more details on
-            how the thickness for edge lines grow, refer to the ``width`` notes
-            of the :func:`pygame.draw.line` function.
    :param int border_radius: (optional) used for drawing rectangle with rounded corners.
       The supported range is [0, min(height, width) / 2], with 0 representing a rectangle
       without rounded corners.
@@ -94,8 +93,7 @@ object around the draw calls (see :func:`pygame.Surface.lock` and
 
    .. note::
       The :func:`pygame.Surface.fill()` method works just as well for drawing
-      filled rectangles and can be hardware accelerated on some platforms with
-      both software and hardware display modes.
+      filled rectangles and can be hardware accelerated on some platforms.
 
    .. versionchanged:: 2.0.0 Added support for keyword arguments.
    .. versionchanged:: 2.0.0.dev8 Added support for border radius.
@@ -302,7 +300,7 @@ object around the draw calls (see :func:`pygame.Surface.lock` and
 .. function:: line
 
    | :sl:`draw a straight line`
-   | :sg:`line(surface, color, start_pos, end_pos, width) -> Rect`
+   | :sg:`line(surface, color, start_pos, end_pos) -> Rect`
    | :sg:`line(surface, color, start_pos, end_pos, width=1) -> Rect`
 
    Draws a straight line on the given surface. There are no endcaps. For thick
@@ -410,7 +408,7 @@ object around the draw calls (see :func:`pygame.Surface.lock` and
    The line has a thickness of one pixel and the endpoints have a height and
    width of one pixel each.
 
-   The way a line and it's endpoints are drawn:
+   The way a line and its endpoints are drawn:
       If both endpoints are equal, only a single pixel is drawn (after
       rounding floats to nearest integer).
 
@@ -425,7 +423,7 @@ object around the draw calls (see :func:`pygame.Surface.lock` and
             Otherwise:
 
                Calculate the position of the nearest point with a whole number
-               for it's x-coordinate, when extending the line past the
+               for its x-coordinate, when extending the line past the
                endpoint.
 
                Find which pixels would be covered and how much by that point.
@@ -491,7 +489,7 @@ object around the draw calls (see :func:`pygame.Surface.lock` and
    :param end_pos: end position of the line, (x, y)
    :type end_pos: tuple(int or float, int or float) or
       list(int or float, int or float) or Vector2(int or float, int or float)
-   :param int blend: (optional) if non-zero (default) the line will be blended
+   :param int blend: (optional) (deprecated) if non-zero (default) the line will be blended
       with the surface's existing pixel shades, otherwise it will overwrite them
 
    :returns: a rect bounding the changed pixels, if nothing is drawn the
@@ -530,7 +528,7 @@ object around the draw calls (see :func:`pygame.Surface.lock` and
       additionally if the ``closed`` parameter is ``True`` another line segment
       will be drawn from ``(x3, y3)`` to ``(x1, y1)``
    :type points: tuple(coordinate) or list(coordinate)
-   :param int blend: (optional) if non-zero (default) each line will be blended
+   :param int blend: (optional) (deprecated) if non-zero (default) each line will be blended
       with the surface's existing pixel shades, otherwise the pixels will be
       overwritten
 
@@ -551,7 +549,6 @@ object around the draw calls (see :func:`pygame.Surface.lock` and
 .. ## pygame.draw ##
 
 .. figure:: code_examples/draw_module_example.png
-   :scale: 50 %
    :alt: draw module example
 
    Example code for draw module.

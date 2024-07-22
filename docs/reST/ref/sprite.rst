@@ -19,7 +19,7 @@ of objects in the game. There is also a base Group class that simply stores
 sprites. A game could create new types of Group classes that operate on
 specially customized Sprite instances they contain.
 
-The basic Sprite class can draw the Sprites it contains to a Surface. The
+The basic Group class can draw the Sprites it contains to a Surface. The
 ``Group.draw()`` method requires that each Sprite have a ``Surface.image``
 attribute and a ``Surface.rect``. The ``Group.clear()`` method requires these
 same attributes, and can be used to erase all the Sprites with background.
@@ -92,7 +92,7 @@ Sprites are not thread safe. So lock them yourself if using threads.
       convenient "hook" that you can override. This method is called by
       ``Group.update()`` with whatever arguments you give it.
 
-      There is no need to use this method if not using the convenience method
+      It is not necessary to use this method if not using the convenience method
       by the same name in the Group class.
 
       .. ## Sprite.update ##
@@ -148,6 +148,11 @@ Sprites are not thread safe. So lock them yourself if using threads.
       .. ## Sprite.groups ##
 
    .. ## pygame.sprite.Sprite ##
+
+.. class:: WeakSprite
+
+   | :sl:`A subclass of Sprite that references its Groups weakly. This means that any group this belongs to that is not referenced anywhere else is garbage collected automatically.`
+   | :sg:`WeakSprite(*groups) -> WeakSprite`
 
 .. class:: DirtySprite
 
@@ -213,8 +218,8 @@ Sprites are not thread safe. So lock them yourself if using threads.
        bool    test if any Sprites are contained
        iter    iterate through all the Sprites
 
-   The Sprites in the Group are not ordered, so drawing and iterating the
-   Sprites is in no particular order.
+   The Sprites in the Group are ordered only on python 3.6 and higher.
+   Below python 3.6 drawing and iterating over the Sprites is in no particular order.
 
    .. method:: sprites
 
@@ -294,11 +299,13 @@ Sprites are not thread safe. So lock them yourself if using threads.
    .. method:: draw
 
       | :sl:`blit the Sprite images`
-      | :sg:`draw(Surface) -> None`
+      | :sg:`draw(Surface, bgsurf=None, special_flags=0) -> List[Rect]`
 
       Draws the contained Sprites to the Surface argument. This uses the
       ``Sprite.image`` attribute for the source surface, and ``Sprite.rect``
-      for the position.
+      for the position. ``special_flags`` is passed to ``Surface.blit()``.
+      ``bgsurf`` is unused in this method but ``LayeredDirty.draw()`` uses
+      it.
 
       The Group does not keep sprites in any order, so the draw order is
       arbitrary.
@@ -340,6 +347,11 @@ Sprites are not thread safe. So lock them yourself if using threads.
 
    .. ## pygame.sprite.Group ##
 
+.. class:: WeakDirtySprite
+
+   | :sl:`A subclass of WeakSprite and DirtySprite that combines the benefits of both classes.`
+   | :sg:`WeakDirtySprite(*groups) -> WeakDirtySprite`
+
 .. class:: RenderPlain
 
    | :sl:`Same as pygame.sprite.Group`
@@ -367,12 +379,13 @@ Sprites are not thread safe. So lock them yourself if using threads.
    .. method:: draw
 
       | :sl:`blit the Sprite images and track changed areas`
-      | :sg:`draw(surface) -> Rect_list`
+      | :sg:`draw(surface, bgsurf=None, special_flags=0) -> Rect_list`
 
       Draws all the Sprites to the surface, the same as ``Group.draw()``. This
       method also returns a list of Rectangular areas on the screen that have
       been changed. The returned changes include areas of the screen that have
-      been affected by previous ``Group.clear()`` calls.
+      been affected by previous ``Group.clear()`` calls. ``special_flags`` is
+      passed to ``Surface.blit()``.
 
       The returned Rect list should be passed to ``pygame.display.update()``.
       This will help performance on software driven display modes. This type of
@@ -386,7 +399,7 @@ Sprites are not thread safe. So lock them yourself if using threads.
 .. function:: OrderedUpdates
 
    | :sl:`RenderUpdates sub-class that draws Sprites in order of addition.`
-   | :sg:`OrderedUpdates(*spites) -> OrderedUpdates`
+   | :sg:`OrderedUpdates(*sprites) -> OrderedUpdates`
 
    This class derives from ``pygame.sprite.RenderUpdates()``. It maintains the
    order in which the Sprites were added to the Group for rendering. This makes
@@ -398,7 +411,7 @@ Sprites are not thread safe. So lock them yourself if using threads.
 .. class:: LayeredUpdates
 
    | :sl:`LayeredUpdates is a sprite group that handles layers and draws like OrderedUpdates.`
-   | :sg:`LayeredUpdates(*spites, **kwargs) -> LayeredUpdates`
+   | :sg:`LayeredUpdates(*sprites, **kwargs) -> LayeredUpdates`
 
    This group is fully compatible with :class:`pygame.sprite.Sprite`.
 
@@ -435,7 +448,7 @@ Sprites are not thread safe. So lock them yourself if using threads.
    .. method:: draw
 
       | :sl:`draw all sprites in the right order onto the passed surface.`
-      | :sg:`draw(surface) -> Rect_list`
+      | :sg:`draw(surface, bgsurf=None, special_flags=0) -> Rect_list`
 
       .. ## LayeredUpdates.draw ##
 
@@ -554,7 +567,7 @@ Sprites are not thread safe. So lock them yourself if using threads.
 .. class:: LayeredDirty
 
    | :sl:`LayeredDirty group is for DirtySprite objects.  Subclasses LayeredUpdates.`
-   | :sg:`LayeredDirty(*spites, **kwargs) -> LayeredDirty`
+   | :sg:`LayeredDirty(*sprites, **kwargs) -> LayeredDirty`
 
    This group requires :class:`pygame.sprite.DirtySprite` or any sprite that
    has the following attributes:
@@ -566,7 +579,7 @@ Sprites are not thread safe. So lock them yourself if using threads.
    It uses the dirty flag technique and is therefore faster than the
    :class:`pygame.sprite.RenderUpdates` if you have many static sprites. It
    also switches automatically between dirty rect update and full screen
-   drawing, so you do no have to worry what would be faster.
+   drawing, so you do not have to worry what would be faster.
 
    Same as for the :class:`pygame.sprite.Group`. You can specify some
    additional attributes through kwargs:
@@ -583,10 +596,13 @@ Sprites are not thread safe. So lock them yourself if using threads.
    .. method:: draw
 
       | :sl:`draw all sprites in the right order onto the passed surface.`
-      | :sg:`draw(surface, bgd=None) -> Rect_list`
+      | :sg:`draw(surface, bgsurf=None, special_flags=None) -> Rect_list`
 
       You can pass the background too. If a background is already set, then the
-      bgd argument has no effect.
+      bgsurf argument has no effect. If present, the ``special_flags`` argument is
+      always passed to ``Surface.blit()``, overriding ``DirtySprite.blendmode``. 
+      If ``special_flags`` is not present, ``DirtySprite.blendmode`` is passed
+      to the ``Surface.blit()`` instead.
 
       .. ## LayeredDirty.draw ##
 
@@ -634,12 +650,27 @@ Sprites are not thread safe. So lock them yourself if using threads.
       | :sl:`sets the threshold in milliseconds`
       | :sg:`set_timing_treshold(time_ms) -> None`
 
-      Default is 1000./80 where 80 is the fps I want to switch to full screen
-      mode.  This method's name is a typo and should be fixed.
+      DEPRECATED: Use set_timing_threshold() instead.
+
+      .. deprecated:: 2.1.1
+
+      .. ## LayeredDirty.set_timing_treshold ##
+
+   .. method:: set_timing_threshold
+
+      | :sl:`sets the threshold in milliseconds`
+      | :sg:`set_timing_threshold(time_ms) -> None`
+
+      Defaults to 1000.0 / 80.0. This means that the screen will be painted
+      using the flip method rather than the update method if the update
+      method is taking so long to update the screen that the frame rate falls
+      below 80 frames per second.
+
+      .. versionadded:: 2.1.1
 
       :raises TypeError: if ``time_ms`` is not int or float
 
-      .. ## LayeredDirty.set_timing_treshold ##
+      .. ## LayeredDirty.set_timing_threshold ##
 
    .. ## pygame.sprite.LayeredDirty ##
 
@@ -795,7 +826,7 @@ Sprites are not thread safe. So lock them yourself if using threads.
    :meth:`groupcollide`, :meth:`spritecollideany`).
 
    .. note::
-      To increase performance, create and set a ``mask`` attibute for all
+      To increase performance, create and set a ``mask`` attribute for all
       sprites that will use this function to check for collisions. Otherwise,
       each time this function is called it will create new masks.
 

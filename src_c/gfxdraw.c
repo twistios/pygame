@@ -128,9 +128,9 @@ Sint16FromObj(PyObject *item, Sint16 *val)
         PyObject *intobj;
         long tmp;
 
-        if (!(intobj = PyNumber_Int(item)))
+        if (!(intobj = PyNumber_Long(item)))
             return 0;
-        tmp = PyInt_AsLong(intobj);
+        tmp = PyLong_AsLong(intobj);
         Py_DECREF(intobj);
         if (tmp == -1 && PyErr_Occurred())
             return 0;
@@ -156,6 +156,7 @@ Sint16FromSeqIndex(PyObject *obj, Py_ssize_t _index, Sint16 *val)
 static PyObject *
 _gfx_pixelcolor(PyObject *self, PyObject *args)
 {
+    SDL_Surface *surf;
     PyObject *surface, *color;
     Sint16 x, y;
     Uint8 rgba[4];
@@ -174,8 +175,11 @@ _gfx_pixelcolor(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    if (pixelRGBA(pgSurface_AsSurface(surface), x, y, rgba[0], rgba[1],
-                  rgba[2], rgba[3]) == -1) {
+    surf = pgSurface_AsSurface(surface);
+    if (!surf)
+        return RAISE(pgExc_SDLError, "display Surface quit");
+
+    if (pixelRGBA(surf, x, y, rgba[0], rgba[1], rgba[2], rgba[3]) == -1) {
         PyErr_SetString(pgExc_SDLError, SDL_GetError());
         return NULL;
     }
@@ -185,6 +189,7 @@ _gfx_pixelcolor(PyObject *self, PyObject *args)
 static PyObject *
 _gfx_hlinecolor(PyObject *self, PyObject *args)
 {
+    SDL_Surface *surf;
     PyObject *surface, *color;
     Sint16 x1, x2, y;
     Uint8 rgba[4];
@@ -203,8 +208,11 @@ _gfx_hlinecolor(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    if (hlineRGBA(pgSurface_AsSurface(surface), x1, x2, y, rgba[0], rgba[1],
-                  rgba[2], rgba[3]) == -1) {
+    surf = pgSurface_AsSurface(surface);
+    if (!surf)
+        return RAISE(pgExc_SDLError, "display Surface quit");
+
+    if (hlineRGBA(surf, x1, x2, y, rgba[0], rgba[1], rgba[2], rgba[3]) == -1) {
         PyErr_SetString(pgExc_SDLError, SDL_GetError());
         return NULL;
     }
@@ -214,6 +222,7 @@ _gfx_hlinecolor(PyObject *self, PyObject *args)
 static PyObject *
 _gfx_vlinecolor(PyObject *self, PyObject *args)
 {
+    SDL_Surface *surf;
     PyObject *surface, *color;
     Sint16 x, _y1, y2;
     Uint8 rgba[4];
@@ -233,8 +242,12 @@ _gfx_vlinecolor(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    if (vlineRGBA(pgSurface_AsSurface(surface), x, _y1, y2, rgba[0], rgba[1],
-                  rgba[2], rgba[3]) == -1) {
+    surf = pgSurface_AsSurface(surface);
+    if (!surf)
+        return RAISE(pgExc_SDLError, "display Surface quit");
+
+    if (vlineRGBA(surf, x, _y1, y2, rgba[0], rgba[1], rgba[2], rgba[3]) ==
+        -1) {
         PyErr_SetString(pgExc_SDLError, SDL_GetError());
         return NULL;
     }
@@ -244,14 +257,16 @@ _gfx_vlinecolor(PyObject *self, PyObject *args)
 static PyObject *
 _gfx_rectanglecolor(PyObject *self, PyObject *args)
 {
+    SDL_Surface *surf;
     PyObject *surface, *color, *rect;
-    GAME_Rect temprect, *sdlrect;
+    SDL_Rect temprect, *sdlrect;
     Sint16 x1, x2, _y1, y2;
     Uint8 rgba[4];
 
     ASSERT_VIDEO_INIT(NULL);
 
     if (!PyArg_ParseTuple(args, "OOO:rectangle", &surface, &rect, &color)) {
+        /* Exception already set */
         return NULL;
     }
 
@@ -261,6 +276,7 @@ _gfx_rectanglecolor(PyObject *self, PyObject *args)
     }
     sdlrect = pgRect_FromObject(rect, &temprect);
     if (sdlrect == NULL) {
+        PyErr_SetString(PyExc_TypeError, "invalid rect style argument");
         return NULL;
     }
 
@@ -269,13 +285,17 @@ _gfx_rectanglecolor(PyObject *self, PyObject *args)
         return NULL;
     }
 
+    surf = pgSurface_AsSurface(surface);
+    if (!surf)
+        return RAISE(pgExc_SDLError, "display Surface quit");
+
     x1 = sdlrect->x;
     _y1 = sdlrect->y;
     x2 = (Sint16)(sdlrect->x + sdlrect->w - 1);
     y2 = (Sint16)(sdlrect->y + sdlrect->h - 1);
 
-    if (rectangleRGBA(pgSurface_AsSurface(surface), x1, _y1, x2, y2, rgba[0],
-                      rgba[1], rgba[2], rgba[3]) == -1) {
+    if (rectangleRGBA(surf, x1, _y1, x2, y2, rgba[0], rgba[1], rgba[2],
+                      rgba[3]) == -1) {
         PyErr_SetString(pgExc_SDLError, SDL_GetError());
         return NULL;
     }
@@ -285,14 +305,16 @@ _gfx_rectanglecolor(PyObject *self, PyObject *args)
 static PyObject *
 _gfx_boxcolor(PyObject *self, PyObject *args)
 {
+    SDL_Surface *surf;
     PyObject *surface, *color, *rect;
-    GAME_Rect temprect, *sdlrect;
+    SDL_Rect temprect, *sdlrect;
     Sint16 x1, x2, _y1, y2;
     Uint8 rgba[4];
 
     ASSERT_VIDEO_INIT(NULL);
 
     if (!PyArg_ParseTuple(args, "OOO:box", &surface, &rect, &color)) {
+        /* Exception already set */
         return NULL;
     }
 
@@ -302,6 +324,7 @@ _gfx_boxcolor(PyObject *self, PyObject *args)
     }
     sdlrect = pgRect_FromObject(rect, &temprect);
     if (sdlrect == NULL) {
+        PyErr_SetString(PyExc_TypeError, "invalid rect style argument");
         return NULL;
     }
     if (!pg_RGBAFromObj(color, rgba)) {
@@ -309,13 +332,17 @@ _gfx_boxcolor(PyObject *self, PyObject *args)
         return NULL;
     }
 
+    surf = pgSurface_AsSurface(surface);
+    if (!surf)
+        return RAISE(pgExc_SDLError, "display Surface quit");
+
     x1 = sdlrect->x;
     _y1 = sdlrect->y;
     x2 = (Sint16)(sdlrect->x + sdlrect->w - 1);
     y2 = (Sint16)(sdlrect->y + sdlrect->h - 1);
 
-    if (boxRGBA(pgSurface_AsSurface(surface), x1, _y1, x2, y2, rgba[0],
-                rgba[1], rgba[2], rgba[3]) == -1) {
+    if (boxRGBA(surf, x1, _y1, x2, y2, rgba[0], rgba[1], rgba[2], rgba[3]) ==
+        -1) {
         PyErr_SetString(pgExc_SDLError, SDL_GetError());
         return NULL;
     }
@@ -325,6 +352,7 @@ _gfx_boxcolor(PyObject *self, PyObject *args)
 static PyObject *
 _gfx_linecolor(PyObject *self, PyObject *args)
 {
+    SDL_Surface *surf;
     PyObject *surface, *color;
     Sint16 x1, x2, _y1, y2;
     Uint8 rgba[4];
@@ -344,8 +372,12 @@ _gfx_linecolor(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    if (lineRGBA(pgSurface_AsSurface(surface), x1, _y1, x2, y2, rgba[0],
-                 rgba[1], rgba[2], rgba[3]) == -1) {
+    surf = pgSurface_AsSurface(surface);
+    if (!surf)
+        return RAISE(pgExc_SDLError, "display Surface quit");
+
+    if (lineRGBA(surf, x1, _y1, x2, y2, rgba[0], rgba[1], rgba[2], rgba[3]) ==
+        -1) {
         PyErr_SetString(pgExc_SDLError, SDL_GetError());
         return NULL;
     }
@@ -355,6 +387,7 @@ _gfx_linecolor(PyObject *self, PyObject *args)
 static PyObject *
 _gfx_circlecolor(PyObject *self, PyObject *args)
 {
+    SDL_Surface *surf;
     PyObject *surface, *color;
     Sint16 x, y, r;
     Uint8 rgba[4];
@@ -373,8 +406,11 @@ _gfx_circlecolor(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    if (circleRGBA(pgSurface_AsSurface(surface), x, y, r, rgba[0], rgba[1],
-                   rgba[2], rgba[3]) == -1) {
+    surf = pgSurface_AsSurface(surface);
+    if (!surf)
+        return RAISE(pgExc_SDLError, "display Surface quit");
+
+    if (circleRGBA(surf, x, y, r, rgba[0], rgba[1], rgba[2], rgba[3]) == -1) {
         PyErr_SetString(pgExc_SDLError, SDL_GetError());
         return NULL;
     }
@@ -384,6 +420,7 @@ _gfx_circlecolor(PyObject *self, PyObject *args)
 static PyObject *
 _gfx_arccolor(PyObject *self, PyObject *args)
 {
+    SDL_Surface *surf;
     PyObject *surface, *color;
     Sint16 x, y, r, start, end;
     Uint8 rgba[4];
@@ -403,8 +440,12 @@ _gfx_arccolor(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    if (arcRGBA(pgSurface_AsSurface(surface), x, y, r, start, end, rgba[0],
-                rgba[1], rgba[2], rgba[3]) == -1) {
+    surf = pgSurface_AsSurface(surface);
+    if (!surf)
+        return RAISE(pgExc_SDLError, "display Surface quit");
+
+    if (arcRGBA(surf, x, y, r, start, end, rgba[0], rgba[1], rgba[2],
+                rgba[3]) == -1) {
         PyErr_SetString(pgExc_SDLError, SDL_GetError());
         return NULL;
     }
@@ -414,6 +455,7 @@ _gfx_arccolor(PyObject *self, PyObject *args)
 static PyObject *
 _gfx_aacirclecolor(PyObject *self, PyObject *args)
 {
+    SDL_Surface *surf;
     PyObject *surface, *color;
     Sint16 x, y, r;
     Uint8 rgba[4];
@@ -433,8 +475,12 @@ _gfx_aacirclecolor(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    if (aacircleRGBA(pgSurface_AsSurface(surface), x, y, r, rgba[0], rgba[1],
-                     rgba[2], rgba[3]) == -1) {
+    surf = pgSurface_AsSurface(surface);
+    if (!surf)
+        return RAISE(pgExc_SDLError, "display Surface quit");
+
+    if (aacircleRGBA(surf, x, y, r, rgba[0], rgba[1], rgba[2], rgba[3]) ==
+        -1) {
         PyErr_SetString(pgExc_SDLError, SDL_GetError());
         return NULL;
     }
@@ -444,6 +490,7 @@ _gfx_aacirclecolor(PyObject *self, PyObject *args)
 static PyObject *
 _gfx_filledcirclecolor(PyObject *self, PyObject *args)
 {
+    SDL_Surface *surf;
     PyObject *surface, *color;
     Sint16 x, y, r;
     Uint8 rgba[4];
@@ -463,8 +510,12 @@ _gfx_filledcirclecolor(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    if (filledCircleRGBA(pgSurface_AsSurface(surface), x, y, r, rgba[0],
-                         rgba[1], rgba[2], rgba[3]) == -1) {
+    surf = pgSurface_AsSurface(surface);
+    if (!surf)
+        return RAISE(pgExc_SDLError, "display Surface quit");
+
+    if (filledCircleRGBA(surf, x, y, r, rgba[0], rgba[1], rgba[2], rgba[3]) ==
+        -1) {
         PyErr_SetString(pgExc_SDLError, SDL_GetError());
         return NULL;
     }
@@ -474,6 +525,7 @@ _gfx_filledcirclecolor(PyObject *self, PyObject *args)
 static PyObject *
 _gfx_ellipsecolor(PyObject *self, PyObject *args)
 {
+    SDL_Surface *surf;
     PyObject *surface, *color;
     Sint16 x, y, rx, ry;
     Uint8 rgba[4];
@@ -493,8 +545,12 @@ _gfx_ellipsecolor(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    if (ellipseRGBA(pgSurface_AsSurface(surface), x, y, rx, ry, rgba[0],
-                    rgba[1], rgba[2], rgba[3]) == -1) {
+    surf = pgSurface_AsSurface(surface);
+    if (!surf)
+        return RAISE(pgExc_SDLError, "display Surface quit");
+
+    if (ellipseRGBA(surf, x, y, rx, ry, rgba[0], rgba[1], rgba[2], rgba[3]) ==
+        -1) {
         PyErr_SetString(pgExc_SDLError, SDL_GetError());
         return NULL;
     }
@@ -504,6 +560,7 @@ _gfx_ellipsecolor(PyObject *self, PyObject *args)
 static PyObject *
 _gfx_aaellipsecolor(PyObject *self, PyObject *args)
 {
+    SDL_Surface *surf;
     PyObject *surface, *color;
     Sint16 x, y, rx, ry;
     Uint8 rgba[4];
@@ -523,8 +580,12 @@ _gfx_aaellipsecolor(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    if (aaellipseRGBA(pgSurface_AsSurface(surface), x, y, rx, ry, rgba[0],
-                      rgba[1], rgba[2], rgba[3]) == -1) {
+    surf = pgSurface_AsSurface(surface);
+    if (!surf)
+        return RAISE(pgExc_SDLError, "display Surface quit");
+
+    if (aaellipseRGBA(surf, x, y, rx, ry, rgba[0], rgba[1], rgba[2],
+                      rgba[3]) == -1) {
         PyErr_SetString(pgExc_SDLError, SDL_GetError());
         return NULL;
     }
@@ -534,6 +595,7 @@ _gfx_aaellipsecolor(PyObject *self, PyObject *args)
 static PyObject *
 _gfx_filledellipsecolor(PyObject *self, PyObject *args)
 {
+    SDL_Surface *surf;
     PyObject *surface, *color;
     Sint16 x, y, rx, ry;
     Uint8 rgba[4];
@@ -553,8 +615,12 @@ _gfx_filledellipsecolor(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    if (filledEllipseRGBA(pgSurface_AsSurface(surface), x, y, rx, ry, rgba[0],
-                          rgba[1], rgba[2], rgba[3]) == -1) {
+    surf = pgSurface_AsSurface(surface);
+    if (!surf)
+        return RAISE(pgExc_SDLError, "display Surface quit");
+
+    if (filledEllipseRGBA(surf, x, y, rx, ry, rgba[0], rgba[1], rgba[2],
+                          rgba[3]) == -1) {
         PyErr_SetString(pgExc_SDLError, SDL_GetError());
         return NULL;
     }
@@ -564,6 +630,7 @@ _gfx_filledellipsecolor(PyObject *self, PyObject *args)
 static PyObject *
 _gfx_piecolor(PyObject *self, PyObject *args)
 {
+    SDL_Surface *surf;
     PyObject *surface, *color;
     Sint16 x, y, r, start, end;
     Uint8 rgba[4];
@@ -583,8 +650,12 @@ _gfx_piecolor(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    if (pieRGBA(pgSurface_AsSurface(surface), x, y, r, start, end, rgba[0],
-                rgba[1], rgba[2], rgba[3]) == -1) {
+    surf = pgSurface_AsSurface(surface);
+    if (!surf)
+        return RAISE(pgExc_SDLError, "display Surface quit");
+
+    if (pieRGBA(surf, x, y, r, start, end, rgba[0], rgba[1], rgba[2],
+                rgba[3]) == -1) {
         PyErr_SetString(pgExc_SDLError, SDL_GetError());
         return NULL;
     }
@@ -594,6 +665,7 @@ _gfx_piecolor(PyObject *self, PyObject *args)
 static PyObject *
 _gfx_trigoncolor(PyObject *self, PyObject *args)
 {
+    SDL_Surface *surf;
     PyObject *surface, *color;
     Sint16 x1, x2, x3, _y1, y2, y3;
     Uint8 rgba[4];
@@ -613,8 +685,12 @@ _gfx_trigoncolor(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    if (trigonRGBA(pgSurface_AsSurface(surface), x1, _y1, x2, y2, x3, y3,
-                   rgba[0], rgba[1], rgba[2], rgba[3]) == -1) {
+    surf = pgSurface_AsSurface(surface);
+    if (!surf)
+        return RAISE(pgExc_SDLError, "display Surface quit");
+
+    if (trigonRGBA(surf, x1, _y1, x2, y2, x3, y3, rgba[0], rgba[1], rgba[2],
+                   rgba[3]) == -1) {
         PyErr_SetString(pgExc_SDLError, SDL_GetError());
         return NULL;
     }
@@ -624,6 +700,7 @@ _gfx_trigoncolor(PyObject *self, PyObject *args)
 static PyObject *
 _gfx_aatrigoncolor(PyObject *self, PyObject *args)
 {
+    SDL_Surface *surf;
     PyObject *surface, *color;
     Sint16 x1, x2, x3, _y1, y2, y3;
     Uint8 rgba[4];
@@ -643,8 +720,12 @@ _gfx_aatrigoncolor(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    if (aatrigonRGBA(pgSurface_AsSurface(surface), x1, _y1, x2, y2, x3, y3,
-                     rgba[0], rgba[1], rgba[2], rgba[3]) == -1) {
+    surf = pgSurface_AsSurface(surface);
+    if (!surf)
+        return RAISE(pgExc_SDLError, "display Surface quit");
+
+    if (aatrigonRGBA(surf, x1, _y1, x2, y2, x3, y3, rgba[0], rgba[1], rgba[2],
+                     rgba[3]) == -1) {
         PyErr_SetString(pgExc_SDLError, SDL_GetError());
         return NULL;
     }
@@ -654,6 +735,7 @@ _gfx_aatrigoncolor(PyObject *self, PyObject *args)
 static PyObject *
 _gfx_filledtrigoncolor(PyObject *self, PyObject *args)
 {
+    SDL_Surface *surf;
     PyObject *surface, *color;
     Sint16 x1, x2, x3, _y1, y2, y3;
     Uint8 rgba[4];
@@ -673,8 +755,12 @@ _gfx_filledtrigoncolor(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    if (filledTrigonRGBA(pgSurface_AsSurface(surface), x1, _y1, x2, y2, x3, y3,
-                         rgba[0], rgba[1], rgba[2], rgba[3]) == -1) {
+    surf = pgSurface_AsSurface(surface);
+    if (!surf)
+        return RAISE(pgExc_SDLError, "display Surface quit");
+
+    if (filledTrigonRGBA(surf, x1, _y1, x2, y2, x3, y3, rgba[0], rgba[1],
+                         rgba[2], rgba[3]) == -1) {
         PyErr_SetString(pgExc_SDLError, SDL_GetError());
         return NULL;
     }
@@ -684,6 +770,7 @@ _gfx_filledtrigoncolor(PyObject *self, PyObject *args)
 static PyObject *
 _gfx_polygoncolor(PyObject *self, PyObject *args)
 {
+    SDL_Surface *surf;
     PyObject *surface, *color, *points, *item;
     Sint16 *vx, *vy, x, y;
     Py_ssize_t count, i;
@@ -715,6 +802,10 @@ _gfx_polygoncolor(PyObject *self, PyObject *args)
         return NULL;
     }
 
+    surf = pgSurface_AsSurface(surface);
+    if (!surf)
+        return RAISE(pgExc_SDLError, "display Surface quit");
+
     vx = PyMem_New(Sint16, (size_t)count);
     vy = PyMem_New(Sint16, (size_t)count);
     if (!vx || !vy) {
@@ -745,8 +836,8 @@ _gfx_polygoncolor(PyObject *self, PyObject *args)
     }
 
     Py_BEGIN_ALLOW_THREADS;
-    ret = polygonRGBA(pgSurface_AsSurface(surface), vx, vy, (int)count,
-                      rgba[0], rgba[1], rgba[2], rgba[3]);
+    ret = polygonRGBA(surf, vx, vy, (int)count, rgba[0], rgba[1], rgba[2],
+                      rgba[3]);
     Py_END_ALLOW_THREADS;
 
     PyMem_Free(vx);
@@ -762,6 +853,7 @@ _gfx_polygoncolor(PyObject *self, PyObject *args)
 static PyObject *
 _gfx_aapolygoncolor(PyObject *self, PyObject *args)
 {
+    SDL_Surface *surf;
     PyObject *surface, *color, *points, *item;
     Sint16 *vx, *vy, x, y;
     Py_ssize_t count, i;
@@ -793,6 +885,10 @@ _gfx_aapolygoncolor(PyObject *self, PyObject *args)
         return NULL;
     }
 
+    surf = pgSurface_AsSurface(surface);
+    if (!surf)
+        return RAISE(pgExc_SDLError, "display Surface quit");
+
     vx = PyMem_New(Sint16, (size_t)count);
     vy = PyMem_New(Sint16, (size_t)count);
     if (!vx || !vy) {
@@ -823,8 +919,8 @@ _gfx_aapolygoncolor(PyObject *self, PyObject *args)
     }
 
     Py_BEGIN_ALLOW_THREADS;
-    ret = aapolygonRGBA(pgSurface_AsSurface(surface), vx, vy, (int)count,
-                        rgba[0], rgba[1], rgba[2], rgba[3]);
+    ret = aapolygonRGBA(surf, vx, vy, (int)count, rgba[0], rgba[1], rgba[2],
+                        rgba[3]);
     Py_END_ALLOW_THREADS;
 
     PyMem_Free(vx);
@@ -840,6 +936,7 @@ _gfx_aapolygoncolor(PyObject *self, PyObject *args)
 static PyObject *
 _gfx_filledpolygoncolor(PyObject *self, PyObject *args)
 {
+    SDL_Surface *surf;
     PyObject *surface, *color, *points, *item;
     Sint16 *vx, *vy, x, y;
     Py_ssize_t count, i;
@@ -872,6 +969,10 @@ _gfx_filledpolygoncolor(PyObject *self, PyObject *args)
         return NULL;
     }
 
+    surf = pgSurface_AsSurface(surface);
+    if (!surf)
+        return RAISE(pgExc_SDLError, "display Surface quit");
+
     vx = PyMem_New(Sint16, (size_t)count);
     vy = PyMem_New(Sint16, (size_t)count);
     if (!vx || !vy) {
@@ -902,8 +1003,8 @@ _gfx_filledpolygoncolor(PyObject *self, PyObject *args)
     }
 
     Py_BEGIN_ALLOW_THREADS;
-    ret = filledPolygonRGBA(pgSurface_AsSurface(surface), vx, vy, (int)count,
-                            rgba[0], rgba[1], rgba[2], rgba[3]);
+    ret = filledPolygonRGBA(surf, vx, vy, (int)count, rgba[0], rgba[1],
+                            rgba[2], rgba[3]);
     Py_END_ALLOW_THREADS;
 
     PyMem_Free(vx);
@@ -936,11 +1037,15 @@ _gfx_texturedpolygon(PyObject *self, PyObject *args)
         return NULL;
     }
     s_surface = pgSurface_AsSurface(surface);
+    if (!s_surface)
+        return RAISE(pgExc_SDLError, "display Surface quit");
     if (!pgSurface_Check(texture)) {
         PyErr_SetString(PyExc_TypeError, "texture must be a Surface");
         return NULL;
     }
     s_texture = pgSurface_AsSurface(texture);
+    if (!s_texture)
+        return RAISE(pgExc_SDLError, "display Surface quit");
     if (!PySequence_Check(points)) {
         PyErr_SetString(PyExc_TypeError, "points must be a sequence");
         return NULL;
@@ -1006,6 +1111,7 @@ _gfx_texturedpolygon(PyObject *self, PyObject *args)
 static PyObject *
 _gfx_beziercolor(PyObject *self, PyObject *args)
 {
+    SDL_Surface *surf;
     PyObject *surface, *color, *points, *item;
     Sint16 *vx, *vy, x, y;
     Py_ssize_t count, i;
@@ -1039,9 +1145,14 @@ _gfx_beziercolor(PyObject *self, PyObject *args)
     }
 
     if (steps < 2) {
-        PyErr_SetString(PyExc_ValueError, "steps parameter must be greater than 1");
+        PyErr_SetString(PyExc_ValueError,
+                        "steps parameter must be greater than 1");
         return NULL;
     }
+
+    surf = pgSurface_AsSurface(surface);
+    if (!surf)
+        return RAISE(pgExc_SDLError, "display Surface quit");
 
     vx = PyMem_New(Sint16, (size_t)count);
     vy = PyMem_New(Sint16, (size_t)count);
@@ -1074,8 +1185,8 @@ _gfx_beziercolor(PyObject *self, PyObject *args)
     }
 
     Py_BEGIN_ALLOW_THREADS;
-    ret = bezierRGBA(pgSurface_AsSurface(surface), vx, vy, (int)count, steps,
-                     rgba[0], rgba[1], rgba[2], rgba[3]);
+    ret = bezierRGBA(surf, vx, vy, (int)count, steps, rgba[0], rgba[1],
+                     rgba[2], rgba[3]);
     Py_END_ALLOW_THREADS;
 
     PyMem_Free(vx);
@@ -1090,11 +1201,8 @@ _gfx_beziercolor(PyObject *self, PyObject *args)
 
 MODINIT_DEFINE(gfxdraw)
 {
-    PyObject *module;
-
-#if PY3
     static struct PyModuleDef _module = {PyModuleDef_HEAD_INIT,
-                                         MODPREFIX "gfxdraw",
+                                         "gfxdraw",
                                          DOC_PYGAMEGFXDRAW,
                                          -1,
                                          _gfxdraw_methods,
@@ -1102,38 +1210,26 @@ MODINIT_DEFINE(gfxdraw)
                                          NULL,
                                          NULL,
                                          NULL};
-#endif
 
     /* import needed APIs; Do this first so if there is an error
        the module is not loaded.
     */
     import_pygame_base();
     if (PyErr_Occurred()) {
-        MODINIT_ERROR;
+        return NULL;
     }
     import_pygame_color();
     if (PyErr_Occurred()) {
-        MODINIT_ERROR;
+        return NULL;
     }
     import_pygame_rect();
     if (PyErr_Occurred()) {
-        MODINIT_ERROR;
+        return NULL;
     }
     import_pygame_surface();
     if (PyErr_Occurred()) {
-        MODINIT_ERROR;
+        return NULL;
     }
 
-#if PY3
-    module = PyModule_Create(&_module);
-#else
-    module = Py_InitModule3(MODPREFIX "gfxdraw", _gfxdraw_methods,
-                            DOC_PYGAMEGFXDRAW);
-#endif
-
-    if (module == NULL) {
-        MODINIT_ERROR;
-    }
-
-    MODINIT_RETURN(module);
+    return PyModule_Create(&_module);
 }

@@ -28,9 +28,9 @@ class Dependency:
                 for n in info["frameworks"]:
                     # -Xlinker is a weird thing for distutils.extension.read_setup_file
                     # so that it can pass things through to the linker from the Setup file.
-                    self.cflags += (' -Xlinker "-framework" -Xlinker "' + n + '"')
+                    self.cflags += (f' -Xlinker "-framework" -Xlinker "{n}"')
 
-        if not extra_libs is None:
+        if extra_libs is not None:
             self.libs.extend(extra_libs)
 
 
@@ -64,7 +64,7 @@ def conan_install(force_build=True):
     finally:
         os.chdir(os.path.join('..', '..'))
 
-def main(sdl2=True):
+def main(sdl2=True, auto_config=False):
     # conan_install(force_build=True)
     # Reuse the previous conan build with this setting:
     conan_install(force_build=False)
@@ -87,5 +87,5 @@ def main(sdl2=True):
     return DEPS
 
 if __name__ == '__main__':
-    print ("""This is the configuration subscript for the Conan package manager.
+    print("""This is the configuration subscript for the Conan package manager.
 Please run "config.py" for full configuration.""")

@@ -2,166 +2,134 @@ environment:
 
   global:
     # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
-    # /E:ON and /V:ON options are not enabled in the batch script intepreter
+    # /E:ON and /V:ON options are not enabled in the batch script interpreter
     # See: http://stackoverflow.com/a/13751649/163740
     WITH_COMPILER: "cmd /E:ON /V:ON /C .\\buildconfig\\ci\\appveyor\\run_with_compiler.cmd"
     DISTRIBUTIONS: "bdist_wheel"
+    PYGAME_DETECT_AVX2: 'yes-why-not'
     PYGAME_DOWNLOAD_PREBUILT: "1"
     PYGAME_USE_PREBUILT: "1"
     SDL_VIDEODRIVER: "dummy"
     SDL_AUDIODRIVER: "disk"
     PYTHONIOENCODING: "UTF-8"
-    TWINE_USERNAME: pygameci
+    TWINE_USERNAME: __token__
     TWINE_PASSWORD:
-      secure: FtHM0I+wubit/UWOzHsykHayL06KImKRZQznRUHUfzM=
+      secure: rRMjJUUe93LoGV78ZAdf2IwTxwqSXDnbXVGer7ObTSK5Fgxv0vQrKbDcepZ3U3L37KvJJ5Ki6Hii8/IHzysNIrS+8BedF/2nrksgUldrdst0nPZea2/EJI6279iDTCumtq/w3In+NH+vcZV8Q2IoeouFuIv/S8P68egnnb5WBBgr0WtBklrNyl/eGPVi8/NT1k5pLaX7RatEPFOF7UM7ShTc/F/StF5DTf2Ir3DJiR9XZF8eGYbzLmgG8UTYUgDD+GZQuZx97+niXbR+vj/zcg==
 
   matrix:
-    - PYTHON: "pypy.exe"
-      PYTHON_VERSION: "2.7.13"
+    - PYTHON: "C:\\Python312\\python"
+      PYTHONPATH: "C:\\Python312"
+      PYTHON_VERSION: "3.12.0"
+      PYTHON_SUFFIX: ""
       PYTHON_ARCH: "32"
-      PYPY_VERSION: "pypy2.7-v7.3.2-win32"
-      PYPY_DOWNLOAD: "powershell buildconfig\\ci\\appveyor\\download_pypy.ps1"
+      USE_ANALYZE: ""
 
     - PYTHON: "pypy3.exe"
       PYTHON_VERSION: "3.6.0"
+      PYTHON_SUFFIX: ""
       PYTHON_ARCH: "32"
       PYPY_VERSION: "pypy3.6-v7.3.2-win32"
       PYPY_DOWNLOAD: "powershell buildconfig\\ci\\appveyor\\download_pypy.ps1"
 
-    - PYTHON: "C:\\Python27\\python"
-      PYTHONPATH: "C:\\Python27"
-      PYTHON_VERSION: "2.7.13"
-      PYTHON_ARCH: "32"
-      USE_SDL2: "-sdl2"
-      USE_ANALYZE: ""
-
-    - PYTHON: "C:\\Python35\\python"
-      PYTHONPATH: "C:\\Python35"
-      PYTHON_VERSION: "3.5.0"
-      PYTHON_ARCH: "32"
-      USE_SDL2: "-sdl2"
-      USE_ANALYZE: ""
-
     - PYTHON: "C:\\Python36\\python"
       PYTHONPATH: "C:\\Python36"
       PYTHON_VERSION: "3.6.0"
+      PYTHON_SUFFIX: ""
       PYTHON_ARCH: "32"
-      USE_SDL2: "-sdl2"
       USE_ANALYZE: ""
 
     - PYTHON: "C:\\Python37\\python"
       PYTHONPATH: "C:\\Python37"
       PYTHON_VERSION: "3.7.0"
+      PYTHON_SUFFIX: ""
       PYTHON_ARCH: "32"
-      USE_SDL2: "-sdl2"
       USE_ANALYZE: ""
 
     - PYTHON: "C:\\Python38\\python"
       PYTHONPATH: "C:\\Python38"
       PYTHON_VERSION: "3.8.0"
+      PYTHON_SUFFIX: ""
       PYTHON_ARCH: "32"
-      USE_SDL2: "-sdl2"
       USE_ANALYZE: ""
 
     - PYTHON: "C:\\Python39\\python"
       PYTHONPATH: "C:\\Python39"
       PYTHON_VERSION: "3.9.0"
+      PYTHON_SUFFIX: ""
       PYTHON_ARCH: "32"
-      USE_SDL2: "-sdl2"
       USE_ANALYZE: ""
 
-    - PYTHON: "C:\\Python27-x64\\python"
-      PYTHONPATH: "C:\\Python27-x64"
-      PYTHON_VERSION: "2.7.13"
-      PYTHON_ARCH: "64"
-      USE_SDL2: "-sdl2"
+    - PYTHON: "C:\\Python310\\python"
+      PYTHONPATH: "C:\\Python310"
+      PYTHON_VERSION: "3.10.0"
+      PYTHON_SUFFIX: ""
+      PYTHON_ARCH: "32"
       USE_ANALYZE: ""
 
-    - PYTHON: "C:\\Python35-x64\\python"
-      PYTHONPATH: "C:\\Python35-x64"
-      PYTHON_VERSION: "3.5.0"
+    - PYTHON: "C:\\Python311\\python"
+      PYTHONPATH: "C:\\Python311"
+      PYTHON_VERSION: "3.11.0"
+      PYTHON_SUFFIX: ""
+      PYTHON_ARCH: "32"
+      USE_ANALYZE: ""
+
+    - PYTHON: "C:\\Python312-x64\\python"
+      PYTHONPATH: "C:\\Python312-x64"
+      PYTHON_VERSION: "3.12.0"
+      PYTHON_SUFFIX: ""
       PYTHON_ARCH: "64"
-      USE_SDL2: "-sdl2"
       USE_ANALYZE: ""
 
     - PYTHON: "C:\\Python36-x64\\python"
       PYTHONPATH: "C:\\Python36-x64"
       PYTHON_VERSION: "3.6.0"
+      PYTHON_SUFFIX: ""
       PYTHON_ARCH: "64"
-      USE_SDL2: "-sdl2"
       USE_ANALYZE: ""
 
     - PYTHON: "C:\\Python37-x64\\python"
       PYTHONPATH: "C:\\Python37-x64"
       PYTHON_VERSION: "3.7.0"
+      PYTHON_SUFFIX: ""
       PYTHON_ARCH: "64"
-      USE_SDL2: "-sdl2"
       USE_ANALYZE: ""
 
     - PYTHON: "C:\\Python38-x64\\python"
       PYTHONPATH: "C:\\Python38-x64"
       PYTHON_VERSION: "3.8.0"
+      PYTHON_SUFFIX: ""
       PYTHON_ARCH: "64"
-      USE_SDL2: "-sdl2"
       USE_ANALYZE: "-enable-msvc-analyze"
 
     - PYTHON: "C:\\Python39-x64\\python"
       PYTHONPATH: "C:\\Python39-x64"
       PYTHON_VERSION: "3.9.0"
+      PYTHON_SUFFIX: ""
       PYTHON_ARCH: "64"
-      USE_SDL2: "-sdl2"
       USE_ANALYZE: ""
 
-#     - PYTHON: "C:\\Python27\\python"
-#       PYTHON_VERSION: "2.7.13"
-#       PYTHON_ARCH: "32"
+    - PYTHON: "C:\\Python310-x64\\python"
+      PYTHONPATH: "C:\\Python310-x64"
+      PYTHON_VERSION: "3.10.0"
+      PYTHON_SUFFIX: ""
+      PYTHON_ARCH: "64"
+      USE_ANALYZE: ""
 
-#     - PYTHON: "C:\\Python34\\python"
-#       PYTHON_VERSION: "3.4.4"
-#       PYTHON_ARCH: "32"
-
-#     - PYTHON: "C:\\Python35\\python"
-#       PYTHON_VERSION: "3.5.2"
-#       PYTHON_ARCH: "32"
-
-#     - PYTHON: "C:\\Python36\\python"
-#       PYTHON_VERSION: "3.6.0"
-#       PYTHON_ARCH: "32"
-
-#     - PYTHON: "C:\\Python37\\python"
-#       PYTHON_VERSION: "3.7.0"
-#       PYTHON_ARCH: "32"
-
-#     - PYTHON: "C:\\Python27-x64\\python"
-#       PYTHON_VERSION: "2.7.13"
-#       PYTHON_ARCH: "64"
-
-#     - PYTHON: "C:\\Python34-x64\\python"
-#       PYTHON_VERSION: "3.4.4"
-#       PYTHON_ARCH: "64"
-
-#     - PYTHON: "C:\\Python35-x64\\python"
-#       PYTHON_VERSION: "3.5.2"
-#       PYTHON_ARCH: "64"
-
-#     - PYTHON: "C:\\Python36-x64\\python"
-#       PYTHON_VERSION: "3.6.0"
-#       PYTHON_ARCH: "64"
-
-#     - PYTHON: "C:\\Python37-x64\\python"
-#       PYTHON_VERSION: "3.7.0"
-#       PYTHON_ARCH: "64"
+    - PYTHON: "C:\\Python311-x64\\python"
+      PYTHONPATH: "C:\\Python311-x64"
+      PYTHON_VERSION: "3.11.0"
+      PYTHON_SUFFIX: ""
+      PYTHON_ARCH: "64"
+      USE_ANALYZE: ""
 
 init:
   - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
 
 install:
-  # install.ps1 only needed for SDL1 stuff.
-  # - "powershell buildconfig\\ci\\appveyor\\install.ps1"
 
   # https://github.com/appveyor/build-images/blob/master/scripts/Windows/install_python.ps1#L88-L108
   - ps: |
-      function InstallPythonEXE($version, $platform, $targetPath) {
+      function InstallPythonEXE($version, $platform, $suffix, $targetPath) {
           $urlPlatform = ""
           if ($platform -eq '64') {
               $urlPlatform = "-amd64"
@@ -169,7 +137,7 @@ install:
 
           Write-Host "Installing Python $version $platform to $($targetPath)..." -ForegroundColor Cyan
 
-          $downloadUrl = "https://www.python.org/ftp/python/$version/python-$version$urlPlatform.exe"
+          $downloadUrl = "https://www.python.org/ftp/python/$version/python-$version$suffix$urlPlatform.exe"
           Write-Host "Downloading $($downloadUrl)..."
           $exePath = "$env:TEMP\python-$version.exe"
           (New-Object Net.WebClient).DownloadFile($downloadUrl, $exePath)
@@ -185,7 +153,7 @@ install:
 
       if (-not (Test-Path env:PYPY_VERSION)) {
         if (-not (Test-Path $env:PYTHONPATH)) {
-          InstallPythonEXE $env:PYTHON_VERSION $env:PYTHON_ARCH $env:PYTHONPATH
+          InstallPythonEXE $env:PYTHON_VERSION $env:PYTHON_ARCH $env:PYTHON_SUFFIX $env:PYTHONPATH
         }
       }
 
@@ -193,8 +161,13 @@ install:
   - "set HOME=%APPVEYOR_BUILD_FOLDER%"
   - "set PATH=%PATH%;%APPVEYOR_BUILD_FOLDER%\\%PYPY_VERSION%"
   - "%PYTHON% -m ensurepip"
-  - "%PYTHON% -m pip install -U wheel pip twine requests"
-  - "%WITH_COMPILER% %PYTHON% -m buildconfig %USE_SDL2%"
+  - "%PYTHON% -m pip install -U setuptools wheel pip"
+  - "%PYTHON% -m pip install twine"
+  - "%PYTHON% -m pip install requests"
+  - "%PYTHON% -m pip install Cython==3.0.0"
+  - "%PYTHON% -m pip install Sphinx==4.5.0 sphinxcontrib-applehelp==1.0.2 pip install sphinxcontrib-devhelp==1.0.2 sphinxcontrib-htmlhelp==2.0.0 sphinxcontrib-qthelp==1.0.3 sphinxcontrib-serializinghtml==1.1.5"
+  - "%PYTHON% setup.py docs"
+  - "%WITH_COMPILER% %PYTHON% -m buildconfig"
   - "%WITH_COMPILER% %PYTHON% setup.py build -j4 %USE_ANALYZE%"
   - "%WITH_COMPILER% %PYTHON% setup.py -setuptools %DISTRIBUTIONS%"
   - ps: "ls dist"

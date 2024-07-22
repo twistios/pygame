@@ -14,7 +14,7 @@ gamepads, and the module allows the use of multiple buttons and "hats".
 Computers may manage multiple joysticks at a time.
 
 Each instance of the Joystick class represents one gaming device plugged
-into the computer. If a gaming pad has multiple joysticks on it, than the
+into the computer. If a gaming pad has multiple joysticks on it, then the
 joystick object can actually represent multiple joysticks on that single
 game device.
 
@@ -39,6 +39,10 @@ the instance ID that was assigned to a Joystick on opening.
 
 The event queue needs to be pumped frequently for some of the methods to work.
 So call one of pygame.event.get, pygame.event.wait, or pygame.event.pump regularly.
+
+To be able to get joystick events and update the joystick objects while the window
+is not in focus, you may set the ``SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS`` environment
+variable. See :ref:`environment variables <environment-variables>` for more details.
 
 
 .. function:: init
@@ -232,6 +236,9 @@ So call one of pygame.event.get, pygame.event.wait, or pygame.event.pump regular
 
       The axis number must be an integer from ``0`` to ``get_numaxes() - 1``.
 
+      When using gamepads both the control sticks and the analog triggers are
+      usually reported as axes.
+
       .. ## Joystick.get_axis ##
 
    .. method:: get_numballs
@@ -316,6 +323,36 @@ So call one of pygame.event.get, pygame.event.wait, or pygame.event.pump regular
 
       .. ## Joystick.get_hat ##
 
+   .. method:: rumble
+
+      | :sl:`Start a rumbling effect`
+      | :sg:`rumble(low_frequency, high_frequency, duration) -> bool`
+
+      Start a rumble effect on the joystick, with the specified strength ranging
+      from 0 to 1. Duration is length of the effect, in ms. Setting the duration
+      to 0 will play the effect until another one overwrites it or
+      :meth:`Joystick.stop_rumble` is called. If an effect is already
+      playing, then it will be overwritten.
+
+      Returns True if the rumble was played successfully or False if the
+      joystick does not support it or :meth:`pygame.version.SDL` is below 2.0.9.
+
+      .. versionadded:: 2.0.2
+
+      .. ## Joystick.rumble ##
+
+   .. method:: stop_rumble
+
+      | :sl:`Stop any rumble effect playing`
+      | :sg:`stop_rumble() -> None`
+
+      Stops any rumble effect playing on the joystick. See
+      :meth:`Joystick.rumble` for more information.
+
+      .. versionadded:: 2.0.2
+
+      .. ## Joystick.stop_rumble ##
+
    .. ## pygame.joystick.Joystick ##
 
 .. ## pygame.joystick ##
@@ -326,4 +363,335 @@ So call one of pygame.event.get, pygame.event.wait, or pygame.event.pump regular
 
    Example code for joystick module.
 
-.. literalinclude:: code_examples/joystick_calls.py
+.. literalinclude:: ../../../examples/joystick.py
+
+.. _controller-mappings:
+
+
+Common Controller Axis Mappings
+===============================
+
+Controller mappings are drawn from the underlying SDL library which pygame uses and they differ
+between pygame 1 and pygame 2. Below are a couple of mappings for three popular controllers.
+
+Axis and hat mappings are listed from -1 to +1.
+
+
+Nintendo Switch Left Joy-Con (pygame 2.x)
+*****************************************
+
+The Nintendo Switch Left Joy-Con has 4 axes, 11 buttons, and 0 hats. The values for the 4 axes never change.
+The controller is recognized as "Wireless Gamepad"
+
+
+* **Buttons**::
+
+    D-pad Up        - Button 0
+    D-pad Down      - Button 1
+    D-pad Left      - Button 2
+    D-pad Right     - Button 3
+    SL              - Button 4
+    SR              - Button 5
+    -               - Button 8
+    Stick In        - Button 10
+    Capture         - Button 13
+    L               - Button 14
+    ZL              - Button 15
+
+* **Hat/JoyStick**::
+
+    Down -> Up      - Y Axis
+    Left -> Right   - X Axis
+
+
+Nintendo Switch Right Joy-Con (pygame 2.x)
+******************************************
+
+The Nintendo Switch Right Joy-Con has 4 axes, 11 buttons, and 0 hats. The values for the 4 axes never change.
+The controller is recognized as "Wireless Gamepad"
+
+
+* **Buttons**::
+
+    A Button        - Button 0
+    B Button        - Button 1
+    X Button        - Button 2
+    Y Button        - Button 3
+    SL              - Button 4
+    SR              - Button 5
+    +               - Button 9
+    Stick In        - Button 11
+    Home            - Button 12
+    R               - Button 14
+    ZR              - Button 15
+
+* **Hat/JoyStick**::
+
+    Down -> Up      - Y Axis
+    Left -> Right   - X Axis
+
+
+Nintendo Switch Pro Controller (pygame 2.x)
+*******************************************
+
+The Nintendo Switch Pro Controller has 6 axes, 16 buttons, and 0 hats.
+The controller is recognized as "Nintendo Switch Pro Controller".
+
+
+* **Left Stick**::
+
+    Left -> Right   - Axis 0
+    Up -> Down      - Axis 1
+
+* **Right Stick**::
+
+    Left -> Right   - Axis 2
+    Up -> Down      - Axis 3
+
+* **Left Trigger**::
+
+    Out -> In       - Axis 4
+
+* **Right Trigger**::
+
+    Out -> In       - Axis 5
+
+* **Buttons**::
+
+    A Button        - Button 0
+    B Button        - Button 1
+    X Button        - Button 2
+    Y Button        - Button 3
+    - Button        - Button 4
+    Home Button     - Button 5
+    + Button        - Button 6
+    L. Stick In     - Button 7
+    R. Stick In     - Button 8
+    Left Bumper     - Button 9
+    Right Bumper    - Button 10
+    D-pad Up        - Button 11
+    D-pad Down      - Button 12
+    D-pad Left      - Button 13
+    D-pad Right     - Button 14
+    Capture Button  - Button 15
+
+
+XBox 360 Controller (pygame 2.x)
+********************************
+
+The Xbox 360 controller mapping has 6 axes, 11 buttons and 1 hat.
+The controller is recognized as "Xbox 360 Controller".
+
+* **Left Stick**::
+
+    Left -> Right   - Axis 0
+    Up   -> Down    - Axis 1
+
+* **Right Stick**::
+
+    Left -> Right   - Axis 3
+    Up   -> Down    - Axis 4
+
+* **Left Trigger**::
+
+    Out -> In       - Axis 2
+
+* **Right Trigger**::
+
+    Out -> In       - Axis 5
+
+* **Buttons**::
+
+    A Button        - Button 0
+    B Button        - Button 1
+    X Button        - Button 2
+    Y Button        - Button 3
+    Left Bumper     - Button 4
+    Right Bumper    - Button 5
+    Back Button     - Button 6
+    Start Button    - Button 7
+    L. Stick In     - Button 8
+    R. Stick In     - Button 9
+    Guide Button    - Button 10
+
+* **Hat/D-pad**::
+
+    Down -> Up      - Y Axis
+    Left -> Right   - X Axis
+
+
+Playstation 4 Controller (pygame 2.x)
+*************************************
+
+The PlayStation 4 controller mapping has 6 axes and 16 buttons.
+The controller is recognized as "PS4 Controller".
+
+* **Left Stick**::
+
+    Left -> Right   - Axis 0
+    Up   -> Down    - Axis 1
+
+* **Right Stick**::
+
+    Left -> Right   - Axis 2
+    Up   -> Down    - Axis 3
+
+* **Left Trigger**::
+
+    Out -> In       - Axis 4
+
+* **Right Trigger**::
+
+    Out -> In       - Axis 5
+
+* **Buttons**::
+
+    Cross Button    - Button 0
+    Circle Button   - Button 1
+    Square Button   - Button 2
+    Triangle Button - Button 3
+    Share Button    - Button 4
+    PS Button       - Button 5
+    Options Button  - Button 6
+    L. Stick In     - Button 7
+    R. Stick In     - Button 8
+    Left Bumper     - Button 9
+    Right Bumper    - Button 10
+    D-pad Up        - Button 11
+    D-pad Down      - Button 12
+    D-pad Left      - Button 13
+    D-pad Right     - Button 14
+    Touch Pad Click - Button 15
+
+Playstation 5 Controller (pygame 2.x)
+*************************************
+
+The PlayStation 5 controller mapping has 6 axes, 13 buttons, and 1 hat.
+The controller is recognized as "Sony Interactive Entertainment Wireless Controller".
+
+* **Left Stick**::
+
+    Left -> Right   - Axis 0
+    Up   -> Down    - Axis 1
+
+* **Right Stick**::
+
+    Left -> Right   - Axis 3
+    Up   -> Down    - Axis 4
+
+* **Left Trigger**::
+
+    Out -> In       - Axis 2
+
+* **Right Trigger**::
+
+    Out -> In       - Axis 5
+
+* **Buttons**::
+
+    Cross Button    - Button 0
+    Circle Button   - Button 1
+    Square Button   - Button 2
+    Triangle Button - Button 3
+    Left Bumper     - Button 4
+    Right Bumper    - Button 5
+    Left Trigger    - Button 6
+    Right Trigger   - Button 7
+    Share Button    - Button 8
+    Options Button  - Button 9
+    PS Button       - Button 10
+    Left Stick in   - Button 11
+    Right Stick in  - Button 12
+
+* **Hat/D-pad**::
+
+    Down -> Up      - Y Axis
+    Left -> Right   - X Axis
+
+
+
+XBox 360 Controller (pygame 1.x)
+********************************
+
+The Xbox 360 controller mapping has 5 axes, 10 buttons, and 1 hat.
+The controller is recognized as "Controller (XBOX 360 For Windows)".
+
+* **Left Stick**::
+
+    Left -> Right   - Axis 0
+    Up   -> Down    - Axis 1
+
+* **Right Stick**::
+
+    Left -> Right   - Axis 4
+    Up   -> Down    - Axis 3
+
+* **Left Trigger & Right Trigger**::
+
+    RT -> LT        - Axis 2
+
+* **Buttons**::
+
+    A Button        - Button 0
+    B Button        - Button 1
+    X Button        - Button 2
+    Y Button        - Button 3
+    Left Bumper     - Button 4
+    Right Bumper    - Button 5
+    Back Button     - Button 6
+    Start Button    - Button 7
+    L. Stick In     - Button 8
+    R. Stick In     - Button 9
+
+* **Hat/D-pad**::
+
+    Down -> Up      - Y Axis
+    Left -> Right   - X Axis
+
+
+Playstation 4 Controller (pygame 1.x)
+*************************************
+
+The PlayStation 4 controller mapping has 6 axes, 14 buttons, and 1 hat.
+The controller is recognized as "Wireless Controller".
+
+* **Left Stick**::
+
+    Left -> Right   - Axis 0
+    Up   -> Down    - Axis 1
+
+* **Right Stick**::
+
+    Left -> Right   - Axis 2
+    Up   -> Down    - Axis 3
+
+* **Left Trigger**::
+
+    Out -> In       - Axis 5
+
+* **Right Trigger**::
+
+    Out -> In       - Axis 4
+
+* **Buttons**::
+
+    Cross Button    - Button 0
+    Circle Button   - Button 1
+    Square Button   - Button 2
+    Triangle Button - Button 3
+    Left Bumper     - Button 4
+    Right Bumper    - Button 5
+    L. Trigger(Full)- Button 6
+    R. Trigger(Full)- Button 7
+    Share Button    - Button 8
+    Options Button  - Button 9
+    L. Stick In     - Button 10
+    R. Stick In     - Button 11
+    PS Button       - Button 12
+    Touch Pad Click - Button 13
+
+* **Hat/D-pad**::
+
+    Down -> Up      - Y Axis
+    Left -> Right   - X Axis
+

@@ -1,5 +1,3 @@
-# -*- encoding: utf-8 -*-
-
 # module setup_win_common.py
 
 """A module for reading the information common to all Windows setups.
@@ -10,7 +8,7 @@ Exports read and get_definitions.
 import os
 PATH = os.path.join('buildconfig', 'Setup_Win_Common.in')
 
-class Definition(object):
+class Definition:
     def __init__(self, name, value):
         self.name = name
         self.value = value

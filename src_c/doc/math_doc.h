@@ -1,8 +1,10 @@
 /* Auto generated file: with makeref.py .  Docs go in docs/reST/ref/ . */
 #define DOC_PYGAMEMATH "pygame module for vector classes"
-#define DOC_PYGAMEMATHVECTOR2 "Vector2() -> Vector2\nVector2(int) -> Vector2\nVector2(float) -> Vector2\nVector2(Vector2) -> Vector2\nVector2(x, y) -> Vector2\nVector2((x, y)) -> Vector2\na 2-Dimensional Vector"
+#define DOC_PYGAMEMATHCLAMP "clamp(value, min, max) -> float\nreturns value clamped to min and max."
+#define DOC_PYGAMEMATHLERP "lerp(a, b, weight) -> float\ninterpolates between two values by a weight."
+#define DOC_PYGAMEMATHVECTOR2 "Vector2() -> Vector2(0, 0)\nVector2(int) -> Vector2\nVector2(float) -> Vector2\nVector2(Vector2) -> Vector2\nVector2(x, y) -> Vector2\nVector2((x, y)) -> Vector2\na 2-Dimensional Vector"
 #define DOC_VECTOR2DOT "dot(Vector2) -> float\ncalculates the dot- or scalar-product with the other vector"
-#define DOC_VECTOR2CROSS "cross(Vector2) -> Vector2\ncalculates the cross- or vector-product"
+#define DOC_VECTOR2CROSS "cross(Vector2) -> float\ncalculates the cross- or vector-product"
 #define DOC_VECTOR2MAGNITUDE "magnitude() -> float\nreturns the Euclidean magnitude of the vector."
 #define DOC_VECTOR2MAGNITUDESQUARED "magnitude_squared() -> float\nreturns the squared magnitude of the vector."
 #define DOC_VECTOR2LENGTH "length() -> float\nreturns the Euclidean length of the vector."
@@ -15,6 +17,8 @@
 #define DOC_VECTOR2REFLECTIP "reflect_ip(Vector2) -> None\nreflect the vector of a given normal in place."
 #define DOC_VECTOR2DISTANCETO "distance_to(Vector2) -> float\ncalculates the Euclidean distance to a given vector."
 #define DOC_VECTOR2DISTANCESQUAREDTO "distance_squared_to(Vector2) -> float\ncalculates the squared Euclidean distance to a given vector."
+#define DOC_VECTOR2MOVETOWARDS "move_towards(Vector2, float) -> Vector2\nreturns a vector moved toward the target by a given distance."
+#define DOC_VECTOR2MOVETOWARDSIP "move_towards_ip(Vector2, float) -> None\nmoves the vector toward its target at a given distance."
 #define DOC_VECTOR2LERP "lerp(Vector2, float) -> Vector2\nreturns a linear interpolation to the given vector."
 #define DOC_VECTOR2SLERP "slerp(Vector2, float) -> Vector2\nreturns a spherical interpolation to the given vector."
 #define DOC_VECTOR2ELEMENTWISE "elementwise() -> VectorElementwiseProxy\nThe next operation will be performed elementwise."
@@ -22,11 +26,17 @@
 #define DOC_VECTOR2ROTATERAD "rotate_rad(angle) -> Vector2\nrotates a vector by a given angle in radians."
 #define DOC_VECTOR2ROTATEIP "rotate_ip(angle) -> None\nrotates the vector by a given angle in degrees in place."
 #define DOC_VECTOR2ROTATEIPRAD "rotate_ip_rad(angle) -> None\nrotates the vector by a given angle in radians in place."
+#define DOC_VECTOR2ROTATERADIP "rotate_rad_ip(angle) -> None\nrotates the vector by a given angle in radians in place."
 #define DOC_VECTOR2ANGLETO "angle_to(Vector2) -> float\ncalculates the angle to a given vector in degrees."
 #define DOC_VECTOR2ASPOLAR "as_polar() -> (r, phi)\nreturns a tuple with radial distance and azimuthal angle."
-#define DOC_VECTOR2FROMPOLAR "from_polar((r, phi)) -> None\nSets x and y from a polar coordinates tuple."
+#define DOC_VECTOR2FROMPOLAR "Vector2.from_polar((r, phi)) -> Vector2\nVector2().from_polar((r, phi)) -> None\nCreates a Vector2(x, y) or sets x and y from a polar coordinates tuple."
+#define DOC_VECTOR2PROJECT "project(Vector2) -> Vector2\nprojects a vector onto another."
+#define DOC_VECTOR2COPY "copy() -> Vector2\nReturns a copy of itself."
+#define DOC_VECTOR2CLAMPMAGNITUDE "clamp_magnitude(max_length) -> Vector2\nclamp_magnitude(min_length, max_length) -> Vector2\nReturns a copy of a vector with the magnitude clamped between max_length and min_length."
+#define DOC_VECTOR2CLAMPMAGNITUDEIP "clamp_magnitude_ip(max_length) -> None\nclamp_magnitude_ip(min_length, max_length) -> None\nClamps the vector's magnitude between max_length and min_length"
 #define DOC_VECTOR2UPDATE "update() -> None\nupdate(int) -> None\nupdate(float) -> None\nupdate(Vector2) -> None\nupdate(x, y) -> None\nupdate((x, y)) -> None\nSets the coordinates of the vector."
-#define DOC_PYGAMEMATHVECTOR3 "Vector3() -> Vector3\nVector3(int) -> Vector3\nVector3(float) -> Vector3\nVector3(Vector3) -> Vector3\nVector3(x, y, z) -> Vector3\nVector3((x, y, z)) -> Vector3\na 3-Dimensional Vector"
+#define DOC_VECTOR2EPSILON "Determines the tolerance of vector calculations."
+#define DOC_PYGAMEMATHVECTOR3 "Vector3() -> Vector3(0, 0, 0)\nVector3(int) -> Vector3\nVector3(float) -> Vector3\nVector3(Vector3) -> Vector3\nVector3(x, y, z) -> Vector3\nVector3((x, y, z)) -> Vector3\na 3-Dimensional Vector"
 #define DOC_VECTOR3DOT "dot(Vector3) -> float\ncalculates the dot- or scalar-product with the other vector"
 #define DOC_VECTOR3CROSS "cross(Vector3) -> Vector3\ncalculates the cross- or vector-product"
 #define DOC_VECTOR3MAGNITUDE "magnitude() -> float\nreturns the Euclidean magnitude of the vector."
@@ -41,6 +51,8 @@
 #define DOC_VECTOR3REFLECTIP "reflect_ip(Vector3) -> None\nreflect the vector of a given normal in place."
 #define DOC_VECTOR3DISTANCETO "distance_to(Vector3) -> float\ncalculates the Euclidean distance to a given vector."
 #define DOC_VECTOR3DISTANCESQUAREDTO "distance_squared_to(Vector3) -> float\ncalculates the squared Euclidean distance to a given vector."
+#define DOC_VECTOR3MOVETOWARDS "move_towards(Vector3, float) -> Vector3\nreturns a vector moved toward the target by a given distance."
+#define DOC_VECTOR3MOVETOWARDSIP "move_towards_ip(Vector3, float) -> None\nmoves the vector toward its target at a given distance."
 #define DOC_VECTOR3LERP "lerp(Vector3, float) -> Vector3\nreturns a linear interpolation to the given vector."
 #define DOC_VECTOR3SLERP "slerp(Vector3, float) -> Vector3\nreturns a spherical interpolation to the given vector."
 #define DOC_VECTOR3ELEMENTWISE "elementwise() -> VectorElementwiseProxy\nThe next operation will be performed elementwise."
@@ -48,24 +60,31 @@
 #define DOC_VECTOR3ROTATERAD "rotate_rad(angle, Vector3) -> Vector3\nrotates a vector by a given angle in radians."
 #define DOC_VECTOR3ROTATEIP "rotate_ip(angle, Vector3) -> None\nrotates the vector by a given angle in degrees in place."
 #define DOC_VECTOR3ROTATEIPRAD "rotate_ip_rad(angle, Vector3) -> None\nrotates the vector by a given angle in radians in place."
+#define DOC_VECTOR3ROTATERADIP "rotate_rad_ip(angle, Vector3) -> None\nrotates the vector by a given angle in radians in place."
 #define DOC_VECTOR3ROTATEX "rotate_x(angle) -> Vector3\nrotates a vector around the x-axis by the angle in degrees."
 #define DOC_VECTOR3ROTATEXRAD "rotate_x_rad(angle) -> Vector3\nrotates a vector around the x-axis by the angle in radians."
 #define DOC_VECTOR3ROTATEXIP "rotate_x_ip(angle) -> None\nrotates the vector around the x-axis by the angle in degrees in place."
 #define DOC_VECTOR3ROTATEXIPRAD "rotate_x_ip_rad(angle) -> None\nrotates the vector around the x-axis by the angle in radians in place."
+#define DOC_VECTOR3ROTATEXRADIP "rotate_x_rad_ip(angle) -> None\nrotates the vector around the x-axis by the angle in radians in place."
 #define DOC_VECTOR3ROTATEY "rotate_y(angle) -> Vector3\nrotates a vector around the y-axis by the angle in degrees."
 #define DOC_VECTOR3ROTATEYRAD "rotate_y_rad(angle) -> Vector3\nrotates a vector around the y-axis by the angle in radians."
 #define DOC_VECTOR3ROTATEYIP "rotate_y_ip(angle) -> None\nrotates the vector around the y-axis by the angle in degrees in place."
 #define DOC_VECTOR3ROTATEYIPRAD "rotate_y_ip_rad(angle) -> None\nrotates the vector around the y-axis by the angle in radians in place."
+#define DOC_VECTOR3ROTATEYRADIP "rotate_y_rad_ip(angle) -> None\nrotates the vector around the y-axis by the angle in radians in place."
 #define DOC_VECTOR3ROTATEZ "rotate_z(angle) -> Vector3\nrotates a vector around the z-axis by the angle in degrees."
 #define DOC_VECTOR3ROTATEZRAD "rotate_z_rad(angle) -> Vector3\nrotates a vector around the z-axis by the angle in radians."
 #define DOC_VECTOR3ROTATEZIP "rotate_z_ip(angle) -> None\nrotates the vector around the z-axis by the angle in degrees in place."
 #define DOC_VECTOR3ROTATEZIPRAD "rotate_z_ip_rad(angle) -> None\nrotates the vector around the z-axis by the angle in radians in place."
+#define DOC_VECTOR3ROTATEZRADIP "rotate_z_rad_ip(angle) -> None\nrotates the vector around the z-axis by the angle in radians in place."
 #define DOC_VECTOR3ANGLETO "angle_to(Vector3) -> float\ncalculates the angle to a given vector in degrees."
 #define DOC_VECTOR3ASSPHERICAL "as_spherical() -> (r, theta, phi)\nreturns a tuple with radial distance, inclination and azimuthal angle."
-#define DOC_VECTOR3FROMSPHERICAL "from_spherical((r, theta, phi)) -> None\nSets x, y and z from a spherical coordinates 3-tuple."
+#define DOC_VECTOR3FROMSPHERICAL "Vector3.from_spherical((r, theta, phi)) -> Vector3\nVector3().from_spherical((r, theta, phi)) -> None\nCreates a Vector3(x, y, z) or sets x, y and z from a spherical coordinates 3-tuple."
+#define DOC_VECTOR3PROJECT "project(Vector3) -> Vector3\nprojects a vector onto another."
+#define DOC_VECTOR3COPY "copy() -> Vector3\nReturns a copy of itself."
+#define DOC_VECTOR3CLAMPMAGNITUDE "clamp_magnitude(max_length) -> Vector3\nclamp_magnitude(min_length, max_length) -> Vector3\nReturns a copy of a vector with the magnitude clamped between max_length and min_length."
+#define DOC_VECTOR3CLAMPMAGNITUDEIP "clamp_magnitude_ip(max_length) -> None\nclamp_magnitude_ip(min_length, max_length) -> None\nClamps the vector's magnitude between max_length and min_length"
 #define DOC_VECTOR3UPDATE "update() -> None\nupdate(int) -> None\nupdate(float) -> None\nupdate(Vector3) -> None\nupdate(x, y, z) -> None\nupdate((x, y, z)) -> None\nSets the coordinates of the vector."
-#define DOC_PYGAMEMATHENABLESWIZZLING "enable_swizzling() -> None\nglobally enables swizzling for vectors."
-#define DOC_PYGAMEMATHDISABLESWIZZLING "disable_swizzling() -> None\nglobally disables swizzling for vectors."
+#define DOC_VECTOR3EPSILON "Determines the tolerance of vector calculations."
 
 
 /* Docs in a comment... slightly easier to read. */
@@ -75,8 +94,16 @@
 pygame.math
 pygame module for vector classes
 
+pygame.math.clamp
+ clamp(value, min, max) -> float
+returns value clamped to min and max.
+
+pygame.math.lerp
+ lerp(a, b, weight) -> float
+interpolates between two values by a weight.
+
 pygame.math.Vector2
- Vector2() -> Vector2
+ Vector2() -> Vector2(0, 0)
  Vector2(int) -> Vector2
  Vector2(float) -> Vector2
  Vector2(Vector2) -> Vector2
@@ -89,7 +116,7 @@ pygame.math.Vector2.dot
 calculates the dot- or scalar-product with the other vector
 
 pygame.math.Vector2.cross
- cross(Vector2) -> Vector2
+ cross(Vector2) -> float
 calculates the cross- or vector-product
 
 pygame.math.Vector2.magnitude
@@ -140,6 +167,14 @@ pygame.math.Vector2.distance_squared_to
  distance_squared_to(Vector2) -> float
 calculates the squared Euclidean distance to a given vector.
 
+pygame.math.Vector2.move_towards
+ move_towards(Vector2, float) -> Vector2
+returns a vector moved toward the target by a given distance.
+
+pygame.math.Vector2.move_towards_ip
+ move_towards_ip(Vector2, float) -> None
+moves the vector toward its target at a given distance.
+
 pygame.math.Vector2.lerp
  lerp(Vector2, float) -> Vector2
 returns a linear interpolation to the given vector.
@@ -168,6 +203,10 @@ pygame.math.Vector2.rotate_ip_rad
  rotate_ip_rad(angle) -> None
 rotates the vector by a given angle in radians in place.
 
+pygame.math.Vector2.rotate_rad_ip
+ rotate_rad_ip(angle) -> None
+rotates the vector by a given angle in radians in place.
+
 pygame.math.Vector2.angle_to
  angle_to(Vector2) -> float
 calculates the angle to a given vector in degrees.
@@ -177,8 +216,27 @@ pygame.math.Vector2.as_polar
 returns a tuple with radial distance and azimuthal angle.
 
 pygame.math.Vector2.from_polar
- from_polar((r, phi)) -> None
-Sets x and y from a polar coordinates tuple.
+ Vector2.from_polar((r, phi)) -> Vector2
+ Vector2().from_polar((r, phi)) -> None
+Creates a Vector2(x, y) or sets x and y from a polar coordinates tuple.
+
+pygame.math.Vector2.project
+ project(Vector2) -> Vector2
+projects a vector onto another.
+
+pygame.math.Vector2.copy
+ copy() -> Vector2
+Returns a copy of itself.
+
+pygame.math.Vector2.clamp_magnitude
+ clamp_magnitude(max_length) -> Vector2
+ clamp_magnitude(min_length, max_length) -> Vector2
+Returns a copy of a vector with the magnitude clamped between max_length and min_length.
+
+pygame.math.Vector2.clamp_magnitude_ip
+ clamp_magnitude_ip(max_length) -> None
+ clamp_magnitude_ip(min_length, max_length) -> None
+Clamps the vector's magnitude between max_length and min_length
 
 pygame.math.Vector2.update
  update() -> None
@@ -189,8 +247,11 @@ pygame.math.Vector2.update
  update((x, y)) -> None
 Sets the coordinates of the vector.
 
+pygame.math.Vector2.epsilon
+Determines the tolerance of vector calculations.
+
 pygame.math.Vector3
- Vector3() -> Vector3
+ Vector3() -> Vector3(0, 0, 0)
  Vector3(int) -> Vector3
  Vector3(float) -> Vector3
  Vector3(Vector3) -> Vector3
@@ -254,6 +315,14 @@ pygame.math.Vector3.distance_squared_to
  distance_squared_to(Vector3) -> float
 calculates the squared Euclidean distance to a given vector.
 
+pygame.math.Vector3.move_towards
+ move_towards(Vector3, float) -> Vector3
+returns a vector moved toward the target by a given distance.
+
+pygame.math.Vector3.move_towards_ip
+ move_towards_ip(Vector3, float) -> None
+moves the vector toward its target at a given distance.
+
 pygame.math.Vector3.lerp
  lerp(Vector3, float) -> Vector3
 returns a linear interpolation to the given vector.
@@ -282,6 +351,10 @@ pygame.math.Vector3.rotate_ip_rad
  rotate_ip_rad(angle, Vector3) -> None
 rotates the vector by a given angle in radians in place.
 
+pygame.math.Vector3.rotate_rad_ip
+ rotate_rad_ip(angle, Vector3) -> None
+rotates the vector by a given angle in radians in place.
+
 pygame.math.Vector3.rotate_x
  rotate_x(angle) -> Vector3
 rotates a vector around the x-axis by the angle in degrees.
@@ -296,6 +369,10 @@ rotates the vector around the x-axis by the angle in degrees in place.
 
 pygame.math.Vector3.rotate_x_ip_rad
  rotate_x_ip_rad(angle) -> None
+rotates the vector around the x-axis by the angle in radians in place.
+
+pygame.math.Vector3.rotate_x_rad_ip
+ rotate_x_rad_ip(angle) -> None
 rotates the vector around the x-axis by the angle in radians in place.
 
 pygame.math.Vector3.rotate_y
@@ -314,6 +391,10 @@ pygame.math.Vector3.rotate_y_ip_rad
  rotate_y_ip_rad(angle) -> None
 rotates the vector around the y-axis by the angle in radians in place.
 
+pygame.math.Vector3.rotate_y_rad_ip
+ rotate_y_rad_ip(angle) -> None
+rotates the vector around the y-axis by the angle in radians in place.
+
 pygame.math.Vector3.rotate_z
  rotate_z(angle) -> Vector3
 rotates a vector around the z-axis by the angle in degrees.
@@ -330,6 +411,10 @@ pygame.math.Vector3.rotate_z_ip_rad
  rotate_z_ip_rad(angle) -> None
 rotates the vector around the z-axis by the angle in radians in place.
 
+pygame.math.Vector3.rotate_z_rad_ip
+ rotate_z_rad_ip(angle) -> None
+rotates the vector around the z-axis by the angle in radians in place.
+
 pygame.math.Vector3.angle_to
  angle_to(Vector3) -> float
 calculates the angle to a given vector in degrees.
@@ -339,8 +424,27 @@ pygame.math.Vector3.as_spherical
 returns a tuple with radial distance, inclination and azimuthal angle.
 
 pygame.math.Vector3.from_spherical
- from_spherical((r, theta, phi)) -> None
-Sets x, y and z from a spherical coordinates 3-tuple.
+ Vector3.from_spherical((r, theta, phi)) -> Vector3
+ Vector3().from_spherical((r, theta, phi)) -> None
+Creates a Vector3(x, y, z) or sets x, y and z from a spherical coordinates 3-tuple.
+
+pygame.math.Vector3.project
+ project(Vector3) -> Vector3
+projects a vector onto another.
+
+pygame.math.Vector3.copy
+ copy() -> Vector3
+Returns a copy of itself.
+
+pygame.math.Vector3.clamp_magnitude
+ clamp_magnitude(max_length) -> Vector3
+ clamp_magnitude(min_length, max_length) -> Vector3
+Returns a copy of a vector with the magnitude clamped between max_length and min_length.
+
+pygame.math.Vector3.clamp_magnitude_ip
+ clamp_magnitude_ip(max_length) -> None
+ clamp_magnitude_ip(min_length, max_length) -> None
+Clamps the vector's magnitude between max_length and min_length
 
 pygame.math.Vector3.update
  update() -> None
@@ -351,12 +455,7 @@ pygame.math.Vector3.update
  update((x, y, z)) -> None
 Sets the coordinates of the vector.
 
-pygame.math.enable_swizzling
- enable_swizzling() -> None
-globally enables swizzling for vectors.
-
-pygame.math.disable_swizzling
- disable_swizzling() -> None
-globally disables swizzling for vectors.
+pygame.math.Vector3.epsilon
+Determines the tolerance of vector calculations.
 
 */

@@ -8,16 +8,14 @@
  #}
 {%- macro header() %}
   <div class="header">
-    <table>
-      <tr>
-	<td class="logo">
+	<div class="flex-container">
+	<div class="logo">
 	  <a href="{{ theme_home_uri }}">
-{%-         set logo_path = '_static/' + logo %}
-	    <img src="{{ pathto(logo_path, 1) }}"/>
+	    <img src="{{logo_url}}" alt="logo image"/>
 	  </a>
 	  <h5>pygame documentation</h5>
-	</td>
-	<td class="pagelinks">
+	</div>
+	<div class="pagelinks">
 	  <div class="top">
 	    <a href="{{ theme_home_uri }}">Pygame Home</a> ||
 	    <a href="{{ pathto(master_doc) }}">Help Contents</a> ||
@@ -35,9 +33,10 @@ We render three sets of items based on how useful to most apps.
 
 #}
 {%- set basic = ['Color', 'display', 'draw', 'event', 'font', 'image', 'key', 'locals', 'mixer', 'mouse', 'music', 'pygame', 'Rect', 'Surface', 'time'] %}
-{%- set advanced = ['BufferProxy', 'freetype', 'gfxdraw', 'midi', 'Overlay', 'PixelArray', 'pixelcopy', 'sndarray', 'surfarray', 'cursors', 'joystick', 'mask', 'math', 'sprite', 'transform'] %}
+{%- set advanced = ['BufferProxy', 'freetype', 'gfxdraw', 'midi', 'PixelArray', 'pixelcopy', 'sndarray', 'surfarray', 'cursors', 'joystick', 'mask', 'math', 'sprite', 'transform'] %}
+{%- set hidden = ['Overlay', 'cdrom', 'sdl2_video', 'sdl2_controller'] %}
 {%-   if pyg_sections %}
-	  <p class="bottom"><b>Most useful stuff</b>:
+	  <p class="bottom"><strong>Most useful stuff</strong>:
 {%      set sep = joiner(" | \n") %}
 {%-     for section in pyg_sections %}
 {%-       set docname = section['docname'] %}
@@ -53,7 +52,7 @@ We render three sets of items based on how useful to most apps.
 {%-     endfor %}
 	  </p>
 
-	  <p class="bottom"><b>Advanced stuff</b>:
+	  <p class="bottom"><strong>Advanced stuff</strong>:
 {%      set sep = joiner(" | \n") %}
 {%-     for section in pyg_sections %}
 {%-       set docname = section['docname'] %}
@@ -69,7 +68,7 @@ We render three sets of items based on how useful to most apps.
 {%-     endfor %}
 	  </p>
 
-	  <p class="bottom"><b>Other</b>:
+	  <p class="bottom"><strong>Other</strong>:
 {%      set sep = joiner(" | \n") %}
 {%-     for section in pyg_sections %}
 {%-       set docname = section['docname'] %}
@@ -79,7 +78,7 @@ We render three sets of items based on how useful to most apps.
 {%-       if name|lower != simpledocname %}
 {%-         set uri = uri + '#' + section['refid'] %}
 {%-       endif %}
-{%-       if name not in basic and name not in advanced %}
+{%-       if name not in basic and name not in advanced and name not in hidden %}
 {{- sep() }}	    <a href="{{ uri }}">{{ name }}</a>
 {%-       endif %}
 {%-     endfor %}
@@ -87,9 +86,8 @@ We render three sets of items based on how useful to most apps.
 
 
 {%-   endif  %}
-	</td>
-      </tr>
-    </table>
+</div>
+</div>
   </div>
 {%- endmacro %}
 

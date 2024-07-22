@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Pygame documentation build configuration file, created by
 # sphinx-quickstart on Sat Mar  5 11:56:39 2011.
@@ -40,17 +39,17 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'pygame'
-copyright = u'2011-2019, pygame developers'
+project = 'pygame'
+copyright = '2000-2023, pygame developers'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
 # The short X.Y version.
-version = '2.0.0.dev21'
+version = '2.6.1'
 # The full version, including alpha/beta/rc tags.
-release = '2.0.0.dev21'
+release = '2.6.1.dev1'
 
 # Format strings for the version directives
 versionadded_format = 'New in pygame %s'
@@ -114,7 +113,7 @@ html_theme_path = ['themes']
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-html_title = "%s v%s documentation" % (project, version)
+html_title = f"{project} v{version} documentation"
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
 #html_short_title = None
@@ -132,6 +131,9 @@ html_favicon = '_static/pygame.ico'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# Add any extra files that should be included in the build.
+html_extra_path = ['../LGPL.txt']
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -186,8 +188,8 @@ htmlhelp_basename = 'Pygamedoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'Pygame.tex', u'Pygame Documentation',
-   u'Pygame Developers', 'manual'),
+  ('index', 'Pygame.tex', 'Pygame Documentation',
+   'Pygame Developers', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -223,5 +225,4 @@ headers_filename_sfx = '_doc'
 smartquotes = False
 
 edit_on_github_project = 'pygame/pygame'
-edit_on_github_branch = 'master'
-
+edit_on_github_branch = 'main'

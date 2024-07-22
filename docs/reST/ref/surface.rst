@@ -26,7 +26,7 @@
 
    ::
 
-     HWSURFACE    creates the image in video memory
+     HWSURFACE    (obsolete in pygame 2) creates the image in video memory
      SRCALPHA     the pixel format will include a per-pixel alpha
 
    Both flags are only a request, and may not be possible for all displays and
@@ -114,6 +114,12 @@
       .. versionadded:: 1.9.2
          Optional ``special_flags``: ``BLEND_PREMULTIPLIED``
 
+      .. versionadded:: 2.0.0
+         Optional ``special_flags``:  ``BLEND_ALPHA_SDL2`` - Uses the SDL2 blitter for alpha blending,
+         this gives different results than the default blitter, which is modelled after SDL1, due to
+         different approximations used for the alpha blending formula. The SDL2 blitter also supports
+         RLE on alpha blended surfaces which the pygame one does not.
+
       The return rectangle is the area of the affected pixels, excluding any
       pixels outside the destination Surface, or outside the clipping area.
 
@@ -127,9 +133,9 @@
    .. method:: blits
 
       | :sl:`draw many images onto another`
-      | :sg:`blits(blit_sequence=(source, dest), ...), doreturn=1) -> [Rect, ...] or None`
-      | :sg:`blits((source, dest, area), ...)) -> [Rect, ...]`
-      | :sg:`blits((source, dest, area, special_flags), ...)) -> [Rect, ...]`
+      | :sg:`blits(blit_sequence=((source, dest), ...), doreturn=1) -> [Rect, ...] or None`
+      | :sg:`blits(((source, dest, area), ...)) -> [Rect, ...]`
+      | :sg:`blits(((source, dest, area, special_flags), ...)) -> [Rect, ...]`
 
       Draws many surfaces onto this Surface. It takes a sequence as input,
       with each of the elements corresponding to the ones of :meth:`blit()`.
@@ -437,6 +443,9 @@
 
       This function will temporarily lock and unlock the Surface as needed.
 
+      .. note:: If the surface is palettized, the pixel color will be set to the
+                most similar color in the palette.
+
       .. ## Surface.set_at ##
 
    .. method:: get_at_mapped
@@ -701,8 +710,8 @@
       | :sg:`get_flags() -> int`
 
       Returns a set of current Surface features. Each feature is a bit in the
-      flags bitmask. Typical flags are ``HWSURFACE``, ``RLEACCEL``,
-      ``SRCALPHA``, and ``SRCCOLORKEY``.
+      flags bitmask. Typical flags are ``RLEACCEL``, ``SRCALPHA``, and
+      ``SRCCOLORKEY``.
 
       Here is a more complete list of flags. A full list can be found in
       ``SDL_video.h``
@@ -710,21 +719,11 @@
       ::
 
         SWSURFACE      0x00000000    # Surface is in system memory
-        HWSURFACE      0x00000001    # Surface is in video memory
-        ASYNCBLIT      0x00000004    # Use asynchronous blits if possible
+        HWSURFACE      0x00000001    # (obsolete in pygame 2) Surface is in video memory
+        ASYNCBLIT      0x00000004    # (obsolete in pygame 2) Use asynchronous blits if possible
 
-      Available for :func:`pygame.display.set_mode()`
-
-      ::
-
-        ANYFORMAT      0x10000000    # Allow any video depth/pixel-format
-        HWPALETTE      0x20000000    # Surface has exclusive palette
-        DOUBLEBUF      0x40000000    # Set up double-buffered video mode
-        FULLSCREEN     0x80000000    # Surface is a full screen display
-        OPENGL         0x00000002    # Create an OpenGL rendering context
-        OPENGLBLIT     0x0000000A    # OBSOLETE. Create an OpenGL rendering context and use it for blitting.
-        RESIZABLE      0x00000010    # This video mode may be resized
-        NOFRAME        0x00000020    # No window caption or edge frame
+      See :func:`pygame.display.set_mode()` for flags exclusive to the
+      display surface.
 
       Used internally (read-only)
 
@@ -770,8 +769,10 @@
 
       This is not needed for normal pygame usage.
 
-      .. note:: In SDL2, the masks are read-only and accordingly this method will raise
-                an AttributeError if called.
+      .. note:: Starting in pygame 2.0, the masks are read-only and
+         accordingly this method will raise a TypeError if called.
+
+      .. deprecated:: 2.0.0
 
       .. versionadded:: 1.8.1
 
@@ -796,8 +797,10 @@
 
       This is not needed for normal pygame usage.
 
-      .. note:: In SDL2, the shifts are read-only and accordingly this method will raise
-                an AttributeError if called.
+      .. note:: Starting in pygame 2.0, the shifts are read-only and
+         accordingly this method will raise a TypeError if called.
+
+      .. deprecated:: 2.0.0
 
       .. versionadded:: 1.8.1
 
@@ -837,10 +840,7 @@
 
       Return an object which exports a surface's internal pixel buffer as
       a C level array struct, Python level array interface or a C level
-      buffer interface. The pixel buffer is writeable. The new buffer protocol
-      is supported for Python 2.6 and up in CPython. The old buffer protocol
-      is also supported for Python 2.x. The old buffer data is in one segment
-      for kind '0', multi-segment for other buffer view kinds.
+      buffer interface. The new buffer protocol is supported.
 
       The kind argument is the length 1 string '0', '1', '2', '3',
       'r', 'g', 'b', or 'a'. The letters are case insensitive;
@@ -906,4 +906,44 @@
 
       .. versionadded:: 1.9.2
 
+   .. method:: premul_alpha
+
+      | :sl:`returns a copy of the surface with the RGB channels pre-multiplied by the alpha channel.`
+      | :sg:`premul_alpha() -> Surface`
+
+      **Experimental:** feature still in development available for testing and feedback. It may change.
+      `Please leave premul_alpha feedback with authors <https://github.com/pygame/pygame/pull/3276>`_
+
+      Returns a copy of the initial surface with the red, green and blue color channels multiplied
+      by the alpha channel. This is intended to make it easier to work with the BLEND_PREMULTIPLED
+      blend mode flag of the blit() method. Surfaces which have called this method will only look
+      correct after blitting if the BLEND_PREMULTIPLED special flag is used.
+
+      It is worth noting that after calling this method, methods that return the colour of a pixel
+      such as get_at() will return the alpha multiplied colour values. It is not possible to fully
+      reverse an alpha multiplication of the colours in a surface as integer colour channel data
+      is generally reduced by the operation (e.g. 255 x 0 = 0, from there it is not possible to reconstruct
+      the original 255 from just the two remaining zeros in the colour and alpha channels).
+
+      If you call this method, and then call it again, it will multiply the colour channels by the alpha channel
+      twice. There are many possible ways to obtain a surface with the colour channels pre-multiplied by the
+      alpha channel in pygame, and it is not possible to tell the difference just from the information in the pixels.
+      It is completely possible to have two identical surfaces - one intended for pre-multiplied alpha blending and
+      one intended for normal blending. For this reason we do not store state on surfaces intended for pre-multiplied
+      alpha blending.
+
+      Surfaces without an alpha channel cannot use this method and will return an error if you use
+      it on them. It is best used on 32 bit surfaces (the default on most platforms) as the blitting
+      on these surfaces can be accelerated by SIMD versions of the pre-multiplied blitter.
+
+      In general pre-multiplied alpha blitting is faster then 'straight alpha' blitting and produces
+      superior results when blitting an alpha surface onto another surface with alpha - assuming both
+      surfaces contain pre-multiplied alpha colours.
+
+      .. versionadded:: 2.2.0
+
+      .. ## Surface.premul_alpha ##
+
    .. ## pygame.Surface ##
+
+

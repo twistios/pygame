@@ -4,17 +4,21 @@
 #define DOC_PYGAMEFONTQUIT "quit() -> None\nuninitialize the font module"
 #define DOC_PYGAMEFONTGETINIT "get_init() -> bool\ntrue if the font module is initialized"
 #define DOC_PYGAMEFONTGETDEFAULTFONT "get_default_font() -> string\nget the filename of the default font"
+#define DOC_PYGAMEFONTGETSDLTTFVERSION "get_sdl_ttf_version(linked=True) -> (major, minor, patch)\ngets SDL_ttf version"
 #define DOC_PYGAMEFONTGETFONTS "get_fonts() -> list of strings\nget all available fonts"
 #define DOC_PYGAMEFONTMATCHFONT "match_font(name, bold=False, italic=False) -> path\nfind a specific font on the system"
 #define DOC_PYGAMEFONTSYSFONT "SysFont(name, size, bold=False, italic=False) -> Font\ncreate a Font object from the system fonts"
-#define DOC_PYGAMEFONTFONT "Font(filename, size) -> Font\nFont(object, size) -> Font\ncreate a new Font object from a file"
+#define DOC_PYGAMEFONTFONT "Font(file_path=None, size=12) -> Font\nFont(file_path, size) -> Font\nFont(pathlib.Path, size) -> Font\nFont(object, size) -> Font\ncreate a new Font object from a file"
 #define DOC_FONTBOLD "bold -> bool\nGets or sets whether the font should be rendered in (faked) bold."
 #define DOC_FONTITALIC "italic -> bool\nGets or sets whether the font should be rendered in (faked) italics."
 #define DOC_FONTUNDERLINE "underline -> bool\nGets or sets whether the font should be rendered with an underline."
+#define DOC_FONTSTRIKETHROUGH "strikethrough -> bool\nGets or sets whether the font should be rendered with a strikethrough."
 #define DOC_FONTRENDER "render(text, antialias, color, background=None) -> Surface\ndraw text on a new Surface"
 #define DOC_FONTSIZE "size(text) -> (width, height)\ndetermine the amount of space needed to render text"
 #define DOC_FONTSETUNDERLINE "set_underline(bool) -> None\ncontrol if text is rendered with an underline"
 #define DOC_FONTGETUNDERLINE "get_underline() -> bool\ncheck if text will be rendered with an underline"
+#define DOC_FONTSETSTRIKETHROUGH "set_strikethrough(bool) -> None\ncontrol if text is rendered with a strikethrough"
+#define DOC_FONTGETSTRIKETHROUGH "get_strikethrough() -> bool\ncheck if text will be rendered with a strikethrough"
 #define DOC_FONTSETBOLD "set_bold(bool) -> None\nenable fake rendering of bold text"
 #define DOC_FONTGETBOLD "get_bold() -> bool\ncheck if text will be rendered bold"
 #define DOC_FONTSETITALIC "set_italic(bool) -> None\nenable fake rendering of italic text"
@@ -24,6 +28,7 @@
 #define DOC_FONTGETHEIGHT "get_height() -> int\nget the height of the font"
 #define DOC_FONTGETASCENT "get_ascent() -> int\nget the ascent of the font"
 #define DOC_FONTGETDESCENT "get_descent() -> int\nget the descent of the font"
+#define DOC_FONTSETSCRIPT "set_script(str) -> None\nset the script code for text shaping"
 
 
 /* Docs in a comment... slightly easier to read. */
@@ -49,6 +54,10 @@ pygame.font.get_default_font
  get_default_font() -> string
 get the filename of the default font
 
+pygame.font.get_sdl_ttf_version
+ get_sdl_ttf_version(linked=True) -> (major, minor, patch)
+gets SDL_ttf version
+
 pygame.font.get_fonts
  get_fonts() -> list of strings
 get all available fonts
@@ -62,7 +71,9 @@ pygame.font.SysFont
 create a Font object from the system fonts
 
 pygame.font.Font
- Font(filename, size) -> Font
+ Font(file_path=None, size=12) -> Font
+ Font(file_path, size) -> Font
+ Font(pathlib.Path, size) -> Font
  Font(object, size) -> Font
 create a new Font object from a file
 
@@ -77,6 +88,10 @@ Gets or sets whether the font should be rendered in (faked) italics.
 pygame.font.Font.underline
  underline -> bool
 Gets or sets whether the font should be rendered with an underline.
+
+pygame.font.Font.strikethrough
+ strikethrough -> bool
+Gets or sets whether the font should be rendered with a strikethrough.
 
 pygame.font.Font.render
  render(text, antialias, color, background=None) -> Surface
@@ -93,6 +108,14 @@ control if text is rendered with an underline
 pygame.font.Font.get_underline
  get_underline() -> bool
 check if text will be rendered with an underline
+
+pygame.font.Font.set_strikethrough
+ set_strikethrough(bool) -> None
+control if text is rendered with a strikethrough
+
+pygame.font.Font.get_strikethrough
+ get_strikethrough() -> bool
+check if text will be rendered with a strikethrough
 
 pygame.font.Font.set_bold
  set_bold(bool) -> None
@@ -129,5 +152,9 @@ get the ascent of the font
 pygame.font.Font.get_descent
  get_descent() -> int
 get the descent of the font
+
+pygame.font.Font.set_script
+ set_script(str) -> None
+set the script code for text shaping
 
 */

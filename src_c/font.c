@@ -37,25 +37,21 @@
 
 #include "structmember.h"
 
-/* Require SDL_ttf 2.0.6 or later for rwops support */
-#ifdef TTF_MAJOR_VERSION
-#define FONT_HAVE_RWOPS 1
-#else
-#define FONT_HAVE_RWOPS 0
+#ifndef SDL_TTF_VERSION_ATLEAST
+#define SDL_TTF_COMPILEDVERSION                                  \
+    SDL_VERSIONNUM(SDL_TTF_MAJOR_VERSION, SDL_TTF_MINOR_VERSION, \
+                   SDL_TTF_PATCHLEVEL)
+#define SDL_TTF_VERSION_ATLEAST(X, Y, Z) \
+    (SDL_TTF_COMPILEDVERSION >= SDL_VERSIONNUM(X, Y, Z))
 #endif
 
-#if PY3
 #define RAISE_TEXT_TYPE_ERROR() \
     RAISE(PyExc_TypeError, "text must be a unicode or bytes");
-#else
-#define RAISE_TEXT_TYPE_ERROR() \
-    RAISE(PyExc_TypeError, "text must be a string or unicode");
-#endif
 
 /* For filtering out UCS-4 and larger characters when Python is
  * built with Py_UNICODE_WIDE.
  */
-#if PY2 && !defined(Py_UNICODE_IS_SURROGATE) || defined(PYPY_VERSION)
+#if defined(PYPY_VERSION)
 #define Py_UNICODE_IS_SURROGATE(ch) (0xD800 <= (ch) && (ch) <= 0xDFFF)
 #endif
 
@@ -64,13 +60,24 @@ static PyObject *
 PyFont_New(TTF_Font *);
 #define PyFont_Check(x) ((x)->ob_type == &PyFont_Type)
 
+static unsigned int current_ttf_generation = 0;
+#if defined(BUILD_STATIC)
+// SDL_Init + TTF_Init()  are made in main before CPython process the module
+// inittab so the emscripten handler knows it will use SDL2 next cycle.
+static int font_initialized = 1;
+#else
 static int font_initialized = 0;
-static const char font_defaultname[] = "freesansbold.ttf";
 static const char pkgdatamodule_name[] = "pygame.pkgdata";
 static const char resourcefunc_name[] = "getResource";
+#endif
+static const char font_defaultname[] = "freesansbold.ttf";
+
+static const int font_defaultsize = 12;
 
 /*
  */
+#if !SDL_TTF_VERSION_ATLEAST(2, 0, 15)
+
 static int
 utf_8_needs_UCS_4(const char *str)
 {
@@ -84,24 +91,7 @@ utf_8_needs_UCS_4(const char *str)
     }
     return 0;
 }
-
-static PyObject *
-pg_open_obj(PyObject *obj, const char *mode)
-{
-    PyObject *result;
-    PyObject *open;
-    PyObject *bltins = PyImport_ImportModule(BUILTINS_MODULE);
-    if (!bltins)
-        return NULL;
-    open = PyObject_GetAttrString(bltins, "open");
-    Py_DECREF(bltins);
-    if (!open)
-        return NULL;
-
-    result = PyObject_CallFunction(open, "Os", obj, mode);
-    Py_DECREF(open);
-    return result;
-}
+#endif
 
 /* Return an encoded file path, a file-like object or a NULL pointer.
  * May raise a Python error. Use PyErr_Occurred to check.
@@ -131,7 +121,6 @@ font_resource(const char *filename)
         return NULL;
     }
 
-#if PY3
     tmp = PyObject_GetAttrString(result, "name");
     if (tmp != NULL) {
         PyObject *closeret;
@@ -147,24 +136,6 @@ font_resource(const char *filename)
     else if (!PyErr_ExceptionMatches(PyExc_MemoryError)) {
         PyErr_Clear();
     }
-#else
-    if (PyFile_Check(result)) {
-        PyObject *closeret;
-
-        tmp = PyFile_Name(result);
-        Py_INCREF(tmp);
-
-        if (!(closeret = PyObject_CallMethod(result, "close", NULL))) {
-            Py_DECREF(result);
-            Py_DECREF(tmp);
-            return NULL;
-        }
-        Py_DECREF(closeret);
-
-        Py_DECREF(result);
-        result = tmp;
-    }
-#endif
 
     tmp = pg_EncodeString(result, "UTF-8", NULL, NULL);
     if (tmp == NULL) {
@@ -182,84 +153,62 @@ font_resource(const char *filename)
     return result;
 }
 
-static void
-font_autoquit(void)
-{
-    if (font_initialized) {
-        font_initialized = 0;
-        TTF_Quit();
-    }
-}
-
 static PyObject *
-font_autoinit(PyObject *self)
+fontmodule_init(PyObject *self, PyObject *_null)
 {
     if (!font_initialized) {
-        pg_RegisterQuit(font_autoquit);
-
         if (TTF_Init())
-            return PyInt_FromLong(0);
+            return RAISE(pgExc_SDLError, SDL_GetError());
+
         font_initialized = 1;
     }
-    return PyInt_FromLong(font_initialized);
-}
-
-static PyObject *
-fontmodule_quit(PyObject *self)
-{
-    font_autoquit();
     Py_RETURN_NONE;
 }
 
 static PyObject *
-fontmodule_init(PyObject *self)
+fontmodule_quit(PyObject *self, PyObject *_null)
 {
-    PyObject *result;
-    int istrue;
-
-    result = font_autoinit(self);
-    if (result == NULL)
-        return NULL;
-    istrue = PyObject_IsTrue(result);
-    Py_DECREF(result);
-    if (!istrue)
-        return RAISE(pgExc_SDLError, SDL_GetError());
+    if (font_initialized) {
+        TTF_Quit();
+        font_initialized = 0;
+        current_ttf_generation++;
+    }
     Py_RETURN_NONE;
 }
 
 static PyObject *
-get_init(PyObject *self)
+pg_font_get_init(PyObject *self, PyObject *_null)
 {
     return PyBool_FromLong(font_initialized);
 }
 
 /* font object methods */
 static PyObject *
-font_get_height(PyObject *self, PyObject *args)
+font_get_height(PyObject *self, PyObject *_null)
 {
     TTF_Font *font = PyFont_AsFont(self);
-    return PyInt_FromLong(TTF_FontHeight(font));
+    return PyLong_FromLong(TTF_FontHeight(font));
 }
 
 static PyObject *
-font_get_descent(PyObject *self, PyObject *args)
+font_get_descent(PyObject *self, PyObject *_null)
 {
     TTF_Font *font = PyFont_AsFont(self);
-    return PyInt_FromLong(TTF_FontDescent(font));
+    return PyLong_FromLong(TTF_FontDescent(font));
 }
 
 static PyObject *
-font_get_ascent(PyObject *self, PyObject *args)
+font_get_ascent(PyObject *self, PyObject *_null)
 {
     TTF_Font *font = PyFont_AsFont(self);
-    return PyInt_FromLong(TTF_FontAscent(font));
+    return PyLong_FromLong(TTF_FontAscent(font));
 }
 
 static PyObject *
-font_get_linesize(PyObject *self, PyObject *args)
+font_get_linesize(PyObject *self, PyObject *_null)
 {
     TTF_Font *font = PyFont_AsFont(self);
-    return PyInt_FromLong(TTF_FontLineSkip(font));
+    return PyLong_FromLong(TTF_FontLineSkip(font));
 }
 
 static PyObject *
@@ -305,26 +254,22 @@ font_setter_bold(PyObject *self, PyObject *value, void *closure)
     return 0;
 }
 
-
 /* Implements get_bold() */
 static PyObject *
-font_get_bold(PyObject *self, PyObject *args)
+font_get_bold(PyObject *self, PyObject *_null)
 {
     return _font_get_style_flag_as_py_bool(self, TTF_STYLE_BOLD);
 }
 
 /* Implements set_bold(bool) */
 static PyObject *
-font_set_bold(PyObject *self, PyObject *args)
+font_set_bold(PyObject *self, PyObject *arg)
 {
     TTF_Font *font = PyFont_AsFont(self);
-    int val;
-#if PY3
-    if (!PyArg_ParseTuple(args, "p", &val))
-#else
-    if (!PyArg_ParseTuple(args, "i", &val))
-#endif /* PY3 */
+    int val = PyObject_IsTrue(arg);
+    if (val == -1) {
         return NULL;
+    }
 
     _font_set_or_clear_style_flag(font, TTF_STYLE_BOLD, val);
 
@@ -358,30 +303,25 @@ font_setter_italic(PyObject *self, PyObject *value, void *closure)
 
 /* Implements get_italic() */
 static PyObject *
-font_get_italic(PyObject *self, PyObject *args)
+font_get_italic(PyObject *self, PyObject *_null)
 {
     return _font_get_style_flag_as_py_bool(self, TTF_STYLE_ITALIC);
 }
 
 /* Implements set_italic(bool) */
 static PyObject *
-font_set_italic(PyObject *self, PyObject *args)
+font_set_italic(PyObject *self, PyObject *arg)
 {
     TTF_Font *font = PyFont_AsFont(self);
-    int val;
-
-#if PY3
-    if (!PyArg_ParseTuple(args, "p", &val))
-#else
-    if (!PyArg_ParseTuple(args, "i", &val))
-#endif /* PY3 */
+    int val = PyObject_IsTrue(arg);
+    if (val == -1) {
         return NULL;
+    }
 
     _font_set_or_clear_style_flag(font, TTF_STYLE_ITALIC, val);
 
     Py_RETURN_NONE;
 }
-
 
 /* Implements getter for the underline attribute */
 static PyObject *
@@ -410,27 +350,69 @@ font_setter_underline(PyObject *self, PyObject *value, void *closure)
 
 /* Implements get_underline() */
 static PyObject *
-font_get_underline(PyObject *self, PyObject *args)
+font_get_underline(PyObject *self, PyObject *_null)
 {
     return _font_get_style_flag_as_py_bool(self, TTF_STYLE_UNDERLINE);
 }
 
-
 /* Implements set_underline(bool) */
 static PyObject *
-font_set_underline(PyObject *self, PyObject *args)
+font_set_underline(PyObject *self, PyObject *arg)
+{
+    TTF_Font *font = PyFont_AsFont(self);
+    int val = PyObject_IsTrue(arg);
+    if (val == -1) {
+        return NULL;
+    }
+
+    _font_set_or_clear_style_flag(font, TTF_STYLE_UNDERLINE, val);
+
+    Py_RETURN_NONE;
+}
+
+/* Implements getter for the strikethrough attribute */
+static PyObject *
+font_getter_strikethrough(PyObject *self, void *closure)
+{
+    return _font_get_style_flag_as_py_bool(self, TTF_STYLE_STRIKETHROUGH);
+}
+
+/* Implements setter for the strikethrough attribute */
+static int
+font_setter_strikethrough(PyObject *self, PyObject *value, void *closure)
 {
     TTF_Font *font = PyFont_AsFont(self);
     int val;
 
-#if PY3
-    if (!PyArg_ParseTuple(args, "p", &val))
-#else
-    if (!PyArg_ParseTuple(args, "i", &val))
-#endif /* PY3 */
-        return NULL;
+    DEL_ATTR_NOT_SUPPORTED_CHECK("strikethrough", value);
 
-    _font_set_or_clear_style_flag(font, TTF_STYLE_UNDERLINE, val);
+    val = PyObject_IsTrue(value);
+    if (val == -1) {
+        return -1;
+    }
+
+    _font_set_or_clear_style_flag(font, TTF_STYLE_STRIKETHROUGH, val);
+    return 0;
+}
+
+/* Implements get_strikethrough() */
+static PyObject *
+font_get_strikethrough(PyObject *self, PyObject *args)
+{
+    return _font_get_style_flag_as_py_bool(self, TTF_STYLE_STRIKETHROUGH);
+}
+
+/* Implements set_strikethrough(bool) */
+static PyObject *
+font_set_strikethrough(PyObject *self, PyObject *arg)
+{
+    TTF_Font *font = PyFont_AsFont(self);
+    int val = PyObject_IsTrue(arg);
+    if (val == -1) {
+        return NULL;
+    }
+
+    _font_set_or_clear_style_flag(font, TTF_STYLE_STRIKETHROUGH, val);
 
     Py_RETURN_NONE;
 }
@@ -439,155 +421,99 @@ static PyObject *
 font_render(PyObject *self, PyObject *args)
 {
     TTF_Font *font = PyFont_AsFont(self);
-    int aa;
+    int antialias;
     PyObject *text, *final;
-    PyObject *fg_rgba_obj, *bg_rgba_obj = NULL;
+    PyObject *fg_rgba_obj, *bg_rgba_obj = Py_None;
     Uint8 rgba[] = {0, 0, 0, 0};
     SDL_Surface *surf;
-    SDL_Color foreg, backg;
-    int just_return;
+    const char *astring = "";
 
-#if PY3
-    if (!PyArg_ParseTuple(args, "OpO|O", &text, &aa, &fg_rgba_obj,
+    if (!PyArg_ParseTuple(args, "OpO|O", &text, &antialias, &fg_rgba_obj,
                           &bg_rgba_obj)) {
         return NULL;
     }
-#else
-    if (!PyArg_ParseTuple(args, "OiO|O", &text, &aa, &fg_rgba_obj,
-                          &bg_rgba_obj)) {
-        return NULL;
-    }
-#endif /* PY3 */
-
 
     if (!pg_RGBAFromFuzzyColorObj(fg_rgba_obj, rgba)) {
         /* Exception already set for us */
         return NULL;
     }
-    foreg.r = rgba[0];
-    foreg.g = rgba[1];
-    foreg.b = rgba[2];
-#if IS_SDLv1
-    foreg.unused = 0;
-#else  /* IS_SDLv2 */
-    foreg.a = SDL_ALPHA_OPAQUE;
-#endif /* IS_SDLv2 */
-    if (bg_rgba_obj == Py_None) {
-        /* Explicit None is the same as not passing a color for us */
-        bg_rgba_obj = NULL;
-    }
-    if (bg_rgba_obj != NULL) {
+
+    SDL_Color foreg = {rgba[0], rgba[1], rgba[2], SDL_ALPHA_OPAQUE};
+    /* might be overridden right below, with an explicit background color */
+    SDL_Color backg = {0, 0, 0, SDL_ALPHA_OPAQUE};
+
+    if (bg_rgba_obj != Py_None) {
         if (!pg_RGBAFromFuzzyColorObj(bg_rgba_obj, rgba)) {
             /* Exception already set for us */
             return NULL;
-        } else {
-            backg.r = rgba[0];
-            backg.g = rgba[1];
-            backg.b = rgba[2];
-#if IS_SDLv1
-            backg.unused = 0;
-#else  /* IS_SDLv2 */
-            backg.a = SDL_ALPHA_OPAQUE;
-#endif /* IS_SDLv2 */
         }
-    }
-    else {
-        backg.r = 0;
-        backg.g = 0;
-        backg.b = 0;
-#if IS_SDLv1
-        backg.unused = 0;
-#else  /* IS_SDLv2 */
-        backg.a = SDL_ALPHA_OPAQUE;
-#endif /* IS_SDLv2 */
+        backg = (SDL_Color){rgba[0], rgba[1], rgba[2], SDL_ALPHA_OPAQUE};
     }
 
-    just_return = PyObject_Not(text);
-    if (just_return) {
-        int height = TTF_FontHeight(font);
-
-        if (just_return == -1 ||
-            !(PyUnicode_Check(text) || Bytes_Check(text) || text == Py_None)) {
-            PyErr_Clear();
-            return RAISE_TEXT_TYPE_ERROR();
-        }
-        surf = SDL_CreateRGBSurface(SDL_SWSURFACE, 0, height, 32, 0xff << 16,
-                                    0xff << 8, 0xff, 0);
-        if (surf == NULL) {
-            return RAISE(pgExc_SDLError, SDL_GetError());
-        }
-        if (bg_rgba_obj != NULL) {
-            Uint32 c = SDL_MapRGB(surf->format, backg.r, backg.g, backg.b);
-            SDL_FillRect(surf, NULL, c);
-        }
-        else {
-            SDL_SetColorKey(surf, SDL_SRCCOLORKEY, 0);
-        }
+    if (!PyUnicode_Check(text) && !PyBytes_Check(text) && text != Py_None) {
+        return RAISE_TEXT_TYPE_ERROR();
     }
-    else if (PyUnicode_Check(text)) {
-        PyObject *bytes = PyUnicode_AsEncodedString(text, "utf-8", "replace");
-        const char *astring = NULL;
 
-        if (!bytes) {
+    if (PyUnicode_Check(text)) {
+        Py_ssize_t _size = -1;
+        astring = PyUnicode_AsUTF8AndSize(text, &_size);
+        if (astring == NULL) { /* exception already set */
             return NULL;
         }
-        astring = Bytes_AsString(bytes);
-        if (strlen(astring) != (size_t)Bytes_GET_SIZE(bytes)) {
-            Py_DECREF(bytes);
+        if (strlen(astring) != (size_t)_size) {
             return RAISE(PyExc_ValueError,
                          "A null character was found in the text");
         }
+    }
+
+    else if (PyBytes_Check(text)) {
+        /* Bytes_AsStringAndSize with NULL arg for length emits
+           ValueError if internal NULL bytes are present */
+        if (PyBytes_AsStringAndSize(text, (char **)&astring, NULL) == -1) {
+            return NULL; /* exception already set */
+        }
+    }
+
+    /* if text is Py_None, leave astring as a null byte to represent 0
+       length string */
+
+    if (strlen(astring) == 0) { /* special 0 string case */
+        int height = TTF_FontHeight(font);
+        surf = SDL_CreateRGBSurface(0, 0, height, 32, 0xff << 16, 0xff << 8,
+                                    0xff, 0);
+    }
+    else { /* normal case */
+#if !SDL_TTF_VERSION_ATLEAST(2, 0, 15)
         if (utf_8_needs_UCS_4(astring)) {
-            Py_DECREF(bytes);
             return RAISE(PyExc_UnicodeError,
                          "A Unicode character above '\\uFFFF' was found;"
-                         " not supported");
+                         " not supported with SDL_ttf version below 2.0.15");
         }
-        if (aa) {
-            if (bg_rgba_obj == NULL) {
-                surf = TTF_RenderUTF8_Blended(font, astring, foreg);
-            }
-            else {
-                surf = TTF_RenderUTF8_Shaded(font, astring, foreg, backg);
-            }
+#endif
+
+        if (antialias && bg_rgba_obj == Py_None) {
+            surf = TTF_RenderUTF8_Blended(font, astring, foreg);
+        }
+        else if (antialias) {
+            surf = TTF_RenderUTF8_Shaded(font, astring, foreg, backg);
         }
         else {
             surf = TTF_RenderUTF8_Solid(font, astring, foreg);
+            /* If an explicit background was provided and the rendering options
+            resolve to Render_Solid, that needs to be explicitly handled. */
+            if (surf != NULL && bg_rgba_obj != Py_None) {
+                SDL_SetColorKey(surf, 0, 0);
+                surf->format->palette->colors[0].r = backg.r;
+                surf->format->palette->colors[0].g = backg.g;
+                surf->format->palette->colors[0].b = backg.b;
+            }
         }
-        Py_DECREF(bytes);
     }
-    else if (Bytes_Check(text)) {
-        const char *astring = Bytes_AsString(text);
 
-        if (strlen(astring) != (size_t)Bytes_GET_SIZE(text)) {
-            return RAISE(PyExc_ValueError,
-                         "A null character was found in the text");
-        }
-        if (aa) {
-            if (bg_rgba_obj == NULL) {
-                surf = TTF_RenderText_Blended(font, astring, foreg);
-            }
-            else {
-                surf = TTF_RenderText_Shaded(font, astring, foreg, backg);
-            }
-        }
-        else {
-            surf = TTF_RenderText_Solid(font, astring, foreg);
-        }
-    }
-    else {
-        return RAISE_TEXT_TYPE_ERROR();
-    }
     if (surf == NULL) {
         return RAISE(pgExc_SDLError, TTF_GetError());
     }
-    if (!aa && (bg_rgba_obj != NULL) && !just_return) {
-        /* turn off transparency */
-        SDL_SetColorKey(surf, 0, 0);
-        surf->format->palette->colors[0].r = backg.r;
-        surf->format->palette->colors[0].g = backg.g;
-        surf->format->palette->colors[0].b = backg.b;
-    }
+
     final = (PyObject *)pgSurface_New(surf);
     if (final == NULL) {
         SDL_FreeSurface(surf);
@@ -596,16 +522,11 @@ font_render(PyObject *self, PyObject *args)
 }
 
 static PyObject *
-font_size(PyObject *self, PyObject *args)
+font_size(PyObject *self, PyObject *text)
 {
     TTF_Font *font = PyFont_AsFont(self);
     int w, h;
-    PyObject *text;
     const char *string;
-
-    if (!PyArg_ParseTuple(args, "O", &text)) {
-        return NULL;
-    }
 
     if (PyUnicode_Check(text)) {
         PyObject *bytes = PyUnicode_AsEncodedString(text, "utf-8", "strict");
@@ -614,15 +535,15 @@ font_size(PyObject *self, PyObject *args)
         if (!bytes) {
             return NULL;
         }
-        string = Bytes_AS_STRING(bytes);
+        string = PyBytes_AS_STRING(bytes);
         ecode = TTF_SizeUTF8(font, string, &w, &h);
         Py_DECREF(bytes);
         if (ecode) {
             return RAISE(pgExc_SDLError, TTF_GetError());
         }
     }
-    else if (Bytes_Check(text)) {
-        string = Bytes_AS_STRING(text);
+    else if (PyBytes_Check(text)) {
+        string = PyBytes_AS_STRING(text);
         if (TTF_SizeText(font, string, &w, &h)) {
             return RAISE(pgExc_SDLError, TTF_GetError());
         }
@@ -634,11 +555,10 @@ font_size(PyObject *self, PyObject *args)
 }
 
 static PyObject *
-font_metrics(PyObject *self, PyObject *args)
+font_metrics(PyObject *self, PyObject *textobj)
 {
     TTF_Font *font = PyFont_AsFont(self);
     PyObject *list;
-    PyObject *textobj;
     Py_ssize_t length;
     Py_ssize_t i;
     int minx;
@@ -648,20 +568,16 @@ font_metrics(PyObject *self, PyObject *args)
     int advance;
     PyObject *obj;
     PyObject *listitem;
-    Uint16* buffer;
+    Uint16 *buffer;
     Uint16 ch;
     PyObject *temp;
     int surrogate;
-
-    if (!PyArg_ParseTuple(args, "O", &textobj)) {
-        return NULL;
-    }
 
     if (PyUnicode_Check(textobj)) {
         obj = textobj;
         Py_INCREF(obj);
     }
-    else if (Bytes_Check(textobj)) {
+    else if (PyBytes_Check(textobj)) {
         obj = PyUnicode_FromEncodedObject(textobj, "UTF-8", NULL);
         if (!obj) {
             return NULL;
@@ -681,8 +597,8 @@ font_metrics(PyObject *self, PyObject *args)
         Py_DECREF(obj);
         return NULL;
     }
-    buffer = (Uint16 *)Bytes_AS_STRING(obj);
-    length = Bytes_GET_SIZE(obj) / sizeof(Uint16);
+    buffer = (Uint16 *)PyBytes_AS_STRING(obj);
+    length = PyBytes_GET_SIZE(obj) / sizeof(Uint16);
     for (i = 1 /* skip BOM */; i < length; i++) {
         ch = buffer[i];
         surrogate = Py_UNICODE_IS_SURROGATE(ch);
@@ -720,41 +636,72 @@ font_metrics(PyObject *self, PyObject *args)
     return list;
 }
 
+static PyObject *
+font_set_script(PyObject *self, PyObject *arg)
+{
+/*Sadly, SDL_TTF_VERSION_ATLEAST is new in SDL_ttf 2.0.15, still too
+ * new to use */
+#if SDL_VERSIONNUM(SDL_TTF_MAJOR_VERSION, SDL_TTF_MINOR_VERSION, \
+                   SDL_TTF_PATCHLEVEL) >= SDL_VERSIONNUM(2, 20, 0)
+    TTF_Font *font = PyFont_AsFont(self);
+    Py_ssize_t size;
+    const char *script_code;
+
+    if (!PyUnicode_Check(arg)) {
+        return RAISE(PyExc_TypeError, "script code must be a string");
+    }
+
+    script_code = PyUnicode_AsUTF8AndSize(arg, &size);
+
+    if (size != 4) {
+        return RAISE(PyExc_ValueError,
+                     "script code must be exactly 4 characters");
+    }
+
+    if (TTF_SetFontScriptName(font, script_code) < 0) {
+        return RAISE(pgExc_SDLError, SDL_GetError());
+    }
+#else
+    return RAISE(pgExc_SDLError,
+                 "pygame.font not compiled with a new enough SDL_ttf version. "
+                 "Needs SDL_ttf 2.20.0 or above.");
+#endif
+    Py_RETURN_NONE;
+}
+
 /**
  * Getters and setters for the pgFontObject.
  */
 static PyGetSetDef font_getsets[] = {
-    {"bold", (getter)font_getter_bold, (setter)font_setter_bold,
-     DOC_FONTBOLD, NULL},
+    {"bold", (getter)font_getter_bold, (setter)font_setter_bold, DOC_FONTBOLD,
+     NULL},
     {"italic", (getter)font_getter_italic, (setter)font_setter_italic,
      DOC_FONTITALIC, NULL},
     {"underline", (getter)font_getter_underline, (setter)font_setter_underline,
      DOC_FONTUNDERLINE, NULL},
+    {"strikethrough", (getter)font_getter_strikethrough,
+     (setter)font_setter_strikethrough, DOC_FONTSTRIKETHROUGH, NULL},
     {NULL, NULL, NULL, NULL, NULL}};
 
 static PyMethodDef font_methods[] = {
-    {"get_height", font_get_height, METH_NOARGS,
-     DOC_FONTGETHEIGHT},
-    {"get_descent", font_get_descent, METH_NOARGS,
-     DOC_FONTGETDESCENT},
-    {"get_ascent", font_get_ascent, METH_NOARGS,
-     DOC_FONTGETASCENT},
-    {"get_linesize", font_get_linesize, METH_NOARGS,
-     DOC_FONTGETLINESIZE},
-
+    {"get_height", font_get_height, METH_NOARGS, DOC_FONTGETHEIGHT},
+    {"get_descent", font_get_descent, METH_NOARGS, DOC_FONTGETDESCENT},
+    {"get_ascent", font_get_ascent, METH_NOARGS, DOC_FONTGETASCENT},
+    {"get_linesize", font_get_linesize, METH_NOARGS, DOC_FONTGETLINESIZE},
     {"get_bold", font_get_bold, METH_NOARGS, DOC_FONTGETBOLD},
-    {"set_bold", font_set_bold, METH_VARARGS, DOC_FONTSETBOLD},
-    {"get_italic", font_get_italic, METH_NOARGS,
-     DOC_FONTGETITALIC},
-    {"set_italic", font_set_italic, METH_VARARGS, DOC_FONTSETITALIC},
-    {"get_underline", font_get_underline, METH_NOARGS,
-     DOC_FONTGETUNDERLINE},
-    {"set_underline", font_set_underline, METH_VARARGS, DOC_FONTSETUNDERLINE},
-
-    {"metrics", font_metrics, METH_VARARGS, DOC_FONTMETRICS},
+    {"set_bold", font_set_bold, METH_O, DOC_FONTSETBOLD},
+    {"get_italic", font_get_italic, METH_NOARGS, DOC_FONTGETITALIC},
+    {"set_italic", font_set_italic, METH_O, DOC_FONTSETITALIC},
+    {"get_underline", font_get_underline, METH_NOARGS, DOC_FONTGETUNDERLINE},
+    {"set_underline", font_set_underline, METH_O, DOC_FONTSETUNDERLINE},
+    {"get_strikethrough", font_get_strikethrough, METH_NOARGS,
+     DOC_FONTGETSTRIKETHROUGH},
+    {"set_strikethrough", font_set_strikethrough, METH_O,
+     DOC_FONTSETSTRIKETHROUGH},
+    {"metrics", font_metrics, METH_O, DOC_FONTMETRICS},
     {"render", font_render, METH_VARARGS, DOC_FONTRENDER},
-    {"size", font_size, METH_VARARGS, DOC_FONTSIZE},
-
+    {"size", font_size, METH_O, DOC_FONTSIZE},
+    {"set_script", font_set_script, METH_O, DOC_FONTSETSCRIPT},
     {NULL, NULL, 0, NULL}};
 
 /*font object internals*/
@@ -762,9 +709,16 @@ static void
 font_dealloc(PyFontObject *self)
 {
     TTF_Font *font = PyFont_AsFont(self);
-
-    if (font && font_initialized)
+    if (font && font_initialized) {
+        if (self->ttf_init_generation != current_ttf_generation) {
+            // Since TTF_Font is a private structure
+            // it's impossible to access face field in a common way.
+            long **face_pp = (long **)font;
+            *face_pp = NULL;
+        }
         TTF_CloseFont(font);
+        self->font = NULL;
+    }
 
     if (self->weakreflist)
         PyObject_ClearWeakRefs((PyObject *)self);
@@ -774,17 +728,16 @@ font_dealloc(PyFontObject *self)
 static int
 font_init(PyFontObject *self, PyObject *args, PyObject *kwds)
 {
-    int fontsize;
+    int fontsize = font_defaultsize;
     TTF_Font *font = NULL;
-    PyObject *obj;
-    PyObject *test;
-    PyObject *oencoded = NULL;
+    PyObject *obj = Py_None;
     SDL_RWops *rw;
 
-    const char *filename;
+    static char *kwlist[] = {"font", "size", NULL};
 
     self->font = NULL;
-    if (!PyArg_ParseTuple(args, "Oi", &obj, &fontsize)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|Oi", kwlist, &obj,
+                                     &fontsize)) {
         return -1;
     }
 
@@ -793,6 +746,7 @@ font_init(PyFontObject *self, PyObject *args, PyObject *kwds)
         return -1;
     }
 
+    /* Incref obj, needs to be decref'd later */
     Py_INCREF(obj);
 
     if (fontsize <= 1) {
@@ -800,6 +754,7 @@ font_init(PyFontObject *self, PyObject *args, PyObject *kwds)
     }
 
     if (obj == Py_None) {
+        /* default font */
         Py_DECREF(obj);
         obj = font_resource(font_defaultname);
         if (obj == NULL) {
@@ -811,191 +766,109 @@ font_init(PyFontObject *self, PyObject *args, PyObject *kwds)
             goto error;
         }
         fontsize = (int)(fontsize * .6875);
-        if (fontsize <= 1) {
-            fontsize = 1;
-        }
+    }
 
-        oencoded = obj;
-        Py_INCREF(oencoded);
-        filename = Bytes_AS_STRING(oencoded);
-    } else {
-        /* SDL accepts UTF8 */
-        oencoded = pg_EncodeString(obj, "UTF8", NULL, NULL);
-        if (!oencoded || oencoded == Py_None) {
-            Py_XDECREF(oencoded);
-            oencoded = NULL;
+    rw = pgRWops_FromObject(obj, NULL);
+
+    if (rw == NULL && PyUnicode_Check(obj)) {
+        if (!PyUnicode_CompareWithASCIIString(obj, font_defaultname)) {
+            /* clear out existing file loading error before attempt to get
+             * default font */
             PyErr_Clear();
-            goto fileobject;
-        }
-        filename = Bytes_AS_STRING(oencoded);
-    }
-
-#if FONT_HAVE_RWOPS
-    /* Try opening the path through RWops first */
-    if (filename) {
-        rw = SDL_RWFromFile(filename, "rb");
-        if (rw != NULL) {
-            Py_BEGIN_ALLOW_THREADS;
-            font = TTF_OpenFontIndexRW(rw, 1, fontsize, 0);
-            Py_END_ALLOW_THREADS;
-        } else {
-            /*
-            PyErr_Format(PyExc_IOError,
-                                 "unable to read font file '%.1024s'",
-                                 filename);
-            goto error;
-            */
-
-            /* silently ignore this failure. We will try opening the path
-               with fopen (pg_open_obj) again later.
-               RWops can open assets bundled with P4A on Android, but not
-               font_resource() paths */
-        }
-        if(font!=NULL)
-            goto success;
-    }
-#endif
-
-    if(font==NULL) {
-        /*check if it is a valid file, else SDL_ttf segfaults*/
-        test = pg_open_obj(obj, "rb");
-        if (test == NULL) {
-            if (strcmp(filename, font_defaultname) == 0) {
-                PyObject *tmp;
-                PyErr_Clear();
-                tmp = font_resource(font_defaultname);
-                if (tmp == NULL) {
-                    if (!PyErr_Occurred()) {
-                        PyErr_Format(PyExc_IOError,
-                                     "unable to read font file '%.1024s'",
-                                     filename);
-                    }
-                    goto error;
-                }
-                Py_DECREF(obj);
-                obj = tmp;
-                filename = Bytes_AS_STRING(obj);
-                test = pg_open_obj(obj, "rb");
-            }
-            if (test == NULL) {
-                if (!PyErr_Occurred()) {
-                    PyErr_Format(PyExc_IOError,
-                                 "unable to read font file '%.1024s'",
-                                 filename);
+            Py_DECREF(obj);
+            obj = font_resource(font_defaultname);
+            if (obj == NULL) {
+                if (PyErr_Occurred() == NULL) {
+                    PyErr_Format(PyExc_RuntimeError,
+                                 "default font '%.1024s' not found",
+                                 font_defaultname);
                 }
                 goto error;
             }
-        }
-        {
-            PyObject *tmp;
-            if (!(tmp = PyObject_CallMethod(test, "close", NULL))) {
-                Py_DECREF(test);
-                goto error;
-            }
-            Py_DECREF(tmp);
-        }
-        Py_DECREF(test);
-        /* opened file (test) is not used for loading,
-           SDL_TTF fopens the file _again_.*/
+            /* Unlike when the default font is loaded with None, the fontsize
+             * is not scaled down here. This was probably unintended
+             * implementation detail,
+             * but this rewritten code aims to keep the exact behavior as the
+             * old one */
 
-        Py_BEGIN_ALLOW_THREADS;
-        font = TTF_OpenFont(filename, fontsize);
-        Py_END_ALLOW_THREADS;
+            rw = pgRWops_FromObject(obj, NULL);
+        }
     }
 
-fileobject:
-    if (font == NULL) {
-#if FONT_HAVE_RWOPS
-        rw = pgRWops_FromFileObject(obj);
-
-        if (rw == NULL) {
-            goto error;
-        }
-
-        Py_BEGIN_ALLOW_THREADS;
-        font = TTF_OpenFontIndexRW(rw, 1, fontsize, 0);
-        Py_END_ALLOW_THREADS;
-#else
-        PyErr_SetString(PyExc_NotImplementedError,
-                        "nonstring fonts require SDL_ttf-2.0.6");
-        goto error;
-#endif
-    }
-
-    if (font == NULL) {
-        PyErr_SetString(PyExc_RuntimeError, SDL_GetError());
+    if (rw == NULL) {
         goto error;
     }
 
-success:
-    Py_XDECREF(oencoded);
+    if (fontsize <= 1)
+        fontsize = 1;
+
+    Py_BEGIN_ALLOW_THREADS;
+    font = TTF_OpenFontRW(rw, 1, fontsize);
+    Py_END_ALLOW_THREADS;
+
     Py_DECREF(obj);
     self->font = font;
+    self->ttf_init_generation = current_ttf_generation;
+
     return 0;
 
 error:
-    Py_XDECREF(oencoded);
     Py_XDECREF(obj);
     return -1;
 }
 
 static PyTypeObject PyFont_Type = {
-    TYPE_HEAD(NULL, 0) "pygame.font.Font",
-    sizeof(PyFontObject),
-    0,
-    (destructor)font_dealloc,
-    0,
-    0, /*getattr*/
-    0,
-    0,
-    0,
-    0,
-    NULL,
-    0,
-    (hashfunc)NULL,
-    (ternaryfunc)NULL,
-    (reprfunc)NULL,
-    0L,
-    0L,
-    0L,
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
-    DOC_PYGAMEFONTFONT,                       /* Documentation string */
-    0,                                        /* tp_traverse */
-    0,                                        /* tp_clear */
-    0,                                        /* tp_richcompare */
-    offsetof(PyFontObject, weakreflist),      /* tp_weaklistoffset */
-    0,                                        /* tp_iter */
-    0,                                        /* tp_iternext */
-    font_methods,                             /* tp_methods */
-    0,                                        /* tp_members */
-    font_getsets,                             /* tp_getset */
-    0,                                        /* tp_base */
-    0,                                        /* tp_dict */
-    0,                                        /* tp_descr_get */
-    0,                                        /* tp_descr_set */
-    0,                                        /* tp_dictoffset */
-    (initproc)font_init,                      /* tp_init */
-    0,                                        /* tp_alloc */
-    0,                                        /* tp_new */
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "pygame.font.Font",
+    .tp_basicsize = sizeof(PyFontObject),
+    .tp_dealloc = (destructor)font_dealloc,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .tp_doc = DOC_PYGAMEFONTFONT,
+    .tp_weaklistoffset = offsetof(PyFontObject, weakreflist),
+    .tp_methods = font_methods,
+    .tp_getset = font_getsets,
+    .tp_init = (initproc)font_init,
 };
-
-//    PyType_GenericNew,                        /* tp_new */
 
 /*font module methods*/
 static PyObject *
-get_default_font(PyObject *self)
+get_default_font(PyObject *self, PyObject *_null)
 {
-    return Text_FromUTF8(font_defaultname);
+    return PyUnicode_FromString(font_defaultname);
+}
+
+static PyObject *
+get_ttf_version(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    int linked = 1; /* Default is linked version. */
+
+    static char *keywords[] = {"linked", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|p", keywords, &linked)) {
+        return NULL; /* Exception already set. */
+    }
+
+    if (linked) {
+        const SDL_version *v = TTF_Linked_Version();
+        return Py_BuildValue("iii", v->major, v->minor, v->patch);
+    }
+    else {
+        /* compiled version */
+        SDL_version v;
+        TTF_VERSION(&v);
+        return Py_BuildValue("iii", v.major, v.minor, v.patch);
+    }
 }
 
 static PyMethodDef _font_methods[] = {
-    {"__PYGAMEinit__", (PyCFunction)font_autoinit, METH_NOARGS,
-     "auto initialize function for font"},
     {"init", (PyCFunction)fontmodule_init, METH_NOARGS, DOC_PYGAMEFONTINIT},
     {"quit", (PyCFunction)fontmodule_quit, METH_NOARGS, DOC_PYGAMEFONTQUIT},
-    {"get_init", (PyCFunction)get_init, METH_NOARGS, DOC_PYGAMEFONTGETINIT},
+    {"get_init", (PyCFunction)pg_font_get_init, METH_NOARGS,
+     DOC_PYGAMEFONTGETINIT},
     {"get_default_font", (PyCFunction)get_default_font, METH_NOARGS,
      DOC_PYGAMEFONTGETDEFAULTFONT},
+    {"get_sdl_ttf_version", (PyCFunction)get_ttf_version,
+     METH_VARARGS | METH_KEYWORDS, DOC_PYGAMEFONTGETINIT},
+
     {NULL, NULL, 0, NULL}};
 
 static PyObject *
@@ -1018,7 +891,6 @@ MODINIT_DEFINE(font)
     PyObject *module, *apiobj;
     static void *c_api[PYGAMEAPI_FONT_NUMSLOTS];
 
-#if PY3
     static struct PyModuleDef _module = {PyModuleDef_HEAD_INIT,
                                          "font",
                                          DOC_PYGAMEFONT,
@@ -1028,71 +900,69 @@ MODINIT_DEFINE(font)
                                          NULL,
                                          NULL,
                                          NULL};
-#endif
 
     /* imported needed apis; Do this first so if there is an error
        the module is not loaded.
     */
     import_pygame_base();
     if (PyErr_Occurred()) {
-        MODINIT_ERROR;
+        return NULL;
     }
     import_pygame_color();
     if (PyErr_Occurred()) {
-        MODINIT_ERROR;
+        return NULL;
     }
     import_pygame_surface();
     if (PyErr_Occurred()) {
-        MODINIT_ERROR;
+        return NULL;
     }
     import_pygame_rwobject();
     if (PyErr_Occurred()) {
-        MODINIT_ERROR;
+        return NULL;
     }
 
     /* type preparation */
     if (PyType_Ready(&PyFont_Type) < 0) {
-        MODINIT_ERROR;
+        return NULL;
     }
     PyFont_Type.tp_new = PyType_GenericNew;
 
-#if PY3
     module = PyModule_Create(&_module);
-#else
-    module = Py_InitModule3(MODPREFIX "font", _font_methods, DOC_PYGAMEFONT);
-#endif
     if (module == NULL) {
-        MODINIT_ERROR;
+        return NULL;
     }
 
-    Py_INCREF((PyObject *)&PyFont_Type);
-    if (PyModule_AddObject(module, "FontType", (PyObject *)&PyFont_Type) ==
-        -1) {
-        Py_DECREF((PyObject *)&PyFont_Type);
-        DECREF_MOD(module);
-        MODINIT_ERROR;
+    Py_INCREF(&PyFont_Type);
+    if (PyModule_AddObject(module, "FontType", (PyObject *)&PyFont_Type)) {
+        Py_DECREF(&PyFont_Type);
+        Py_DECREF(module);
+        return NULL;
     }
 
-    Py_INCREF((PyObject *)&PyFont_Type);
-    if (PyModule_AddObject(module, "Font", (PyObject *)&PyFont_Type) == -1) {
-        Py_DECREF((PyObject *)&PyFont_Type);
-        DECREF_MOD(module);
-        MODINIT_ERROR;
+    Py_INCREF(&PyFont_Type);
+    if (PyModule_AddObject(module, "Font", (PyObject *)&PyFont_Type)) {
+        Py_DECREF(&PyFont_Type);
+        Py_DECREF(module);
+        return NULL;
     }
+
+#if SDL_TTF_VERSION_ATLEAST(2, 0, 15)
+    /* So people can check for UCS4 support. */
+    if (PyModule_AddIntConstant(module, "UCS4", 1)) {
+        Py_DECREF(module);
+        return NULL;
+    }
+#endif
 
     /* export the c api */
     c_api[0] = &PyFont_Type;
     c_api[1] = PyFont_New;
     c_api[2] = &font_initialized;
     apiobj = encapsulate_api(c_api, "font");
-    if (apiobj == NULL) {
-        DECREF_MOD(module);
-        MODINIT_ERROR;
+    if (PyModule_AddObject(module, PYGAMEAPI_LOCAL_ENTRY, apiobj)) {
+        Py_XDECREF(apiobj);
+        Py_DECREF(module);
+        return NULL;
     }
-    if (PyModule_AddObject(module, PYGAMEAPI_LOCAL_ENTRY, apiobj) == -1) {
-        Py_DECREF(apiobj);
-        DECREF_MOD(module);
-        MODINIT_ERROR;
-    }
-    MODINIT_RETURN(module);
+    return module;
 }

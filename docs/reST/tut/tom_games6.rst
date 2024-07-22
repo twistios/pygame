@@ -12,7 +12,7 @@
 So far you've learnt all the basics necessary to build a simple game. You should understand how to create Pygame objects, how Pygame
 displays objects, how it handles events, and how you can use physics to introduce some motion into your game. Now I'll just show how
 you can take all those chunks of code and put them together into a working game. What we need first is to let the ball hit the sides
-of the screen, and for the bat to be able to hit the ball, otherwise there's not going to be much game play involved. We do this
+of the screen, and for the bat to be able to hit the ball, otherwise there's not going to be much gameplay involved. We do this
 using Pygame's :meth:`collision <pygame.Rect.collidepoint>` methods.
 
 
@@ -21,7 +21,7 @@ using Pygame's :meth:`collision <pygame.Rect.collidepoint>` methods.
 6.1. Let the ball hit sides
 ---------------------------
 
-The basics principle behind making it bounce of the sides is easy to grasp. You grab the coordinates of the four corners of the ball,
+The basic principle behind making it bounce of the sides is easy to grasp. You grab the coordinates of the four corners of the ball,
 and check to see if they correspond with the x or y coordinate of the edge of the screen. So if the top right and top left corners both
 have a y coordinate of zero, you know that the ball is currently on the top edge of the screen. We do all this in the ``update`` function,
 after we've worked out the new position of the ball.
@@ -44,7 +44,7 @@ after we've worked out the new position of the ball.
 
 Here we check to see if the ``area``
 contains the new position of the ball (it always should, so we needn't have an ``else`` clause,
-though in other circumstances you might want to consider it. We then check if the coordinates for the four corners
+though in other circumstances you might want to consider it). We then check if the coordinates for the four corners
 are *colliding* with the area's edges, and create objects for each result. If they are, the objects will have a value of 1,
 or ``True``. If they don't, then the value will be ``None``, or ``False``. We then see if it has hit the top or bottom, and if it
 has we change the ball's direction. Handily, using radians we can do this by simply reversing its positive/negative value.
@@ -122,7 +122,7 @@ like this::
   #
   # Tom's Pong
   # A simple pong game with realistic physics and AI
-  # http://www.tomchance.uklinux.net/projects/pong.shtml
+  # http://tomchance.org.uk/projects/pong
   #
   # Released under the GNU General Public License
 
@@ -138,21 +138,21 @@ like this::
       from socket import *
       from pygame.locals import *
   except ImportError, err:
-      print "couldn't load module. %s" % (err)
+      print(f"couldn't load module. {err}")
       sys.exit(2)
 
   def load_png(name):
       """ Load image and return image object"""
-      fullname = os.path.join('data', name)
+      fullname = os.path.join("data", name)
       try:
           image = pygame.image.load(fullname)
           if image.get_alpha is None:
               image = image.convert()
           else:
               image = image.convert_alpha()
-      except pygame.error, message:
-          print 'Cannot load image:', fullname
-          raise SystemExit, message
+      except FileNotFoundError:
+          print(f"Cannot load image: {fullname}")
+          raise SystemExit
       return image, image.get_rect()
 
   class Ball(pygame.sprite.Sprite):
@@ -163,7 +163,7 @@ like this::
 
       def __init__(self, (xy), vector):
           pygame.sprite.Sprite.__init__(self)
-          self.image, self.rect = load_png('ball.png')
+          self.image, self.rect = load_png("ball.png")
           screen = pygame.display.get_surface()
           self.area = screen.get_rect()
           self.vector = vector
@@ -220,7 +220,7 @@ like this::
 
       def __init__(self, side):
           pygame.sprite.Sprite.__init__(self)
-          self.image, self.rect = load_png('bat.png')
+          self.image, self.rect = load_png("bat.png")
           screen = pygame.display.get_surface()
           self.area = screen.get_rect()
           self.side = side
@@ -255,7 +255,7 @@ like this::
       # Initialise screen
       pygame.init()
       screen = pygame.display.set_mode((640, 480))
-      pygame.display.set_caption('Basic Pong')
+      pygame.display.set_caption("Basic Pong")
 
       # Fill background
       background = pygame.Surface(screen.get_size())
@@ -285,7 +285,7 @@ like this::
       clock = pygame.time.Clock()
 
       # Event loop
-      while 1:
+      while True:
           # Make sure game doesn't run at more than 60 frames per second
           clock.tick(60)
 
@@ -319,11 +319,12 @@ like this::
           pygame.display.flip()
 
 
-  if __name__ == '__main__': main()
+  if __name__ == "__main__":
+      main()
 
 
 As well as showing you the final product, I'll point you back to TomPong, upon which all of this is based. Download it, have a look
 at the source code, and you'll see a full implementation of pong using all of the code you've seen in this tutorial, as well as lots of
 other code I've added in various versions, such as some extra physics for spinning, and various other bug and glitch fixes.
 
-Oh, find TomPong at http://www.tomchance.uklinux.net/projects/pong.shtml.
+Oh, find TomPong at http://tomchance.org.uk/projects/pong.

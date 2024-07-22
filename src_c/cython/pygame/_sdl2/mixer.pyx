@@ -1,4 +1,4 @@
-from . import error
+from pygame._sdl2.sdl2 import error
 import traceback
 
 #https://www.libsdl.org/projects/SDL_mixer/docs/SDL_mixer.html#SEC79
@@ -14,7 +14,7 @@ import traceback
 # Mix_SetPostMix(noEffect, NULL);
 
 
-cdef void recording_cb(void* userdata, Uint8* stream, int len) nogil:
+cdef void recording_cb(void* userdata, Uint8* stream, int len) noexcept nogil:
     """ This is called in a thread made by SDL.
         So we need the python GIL to do python stuff.
     """

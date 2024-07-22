@@ -24,14 +24,14 @@ provided by modules like ``sys`` and ``pygame``.
 
 First off, you need to start off your game and load up your modules. It's always a good idea to set a few things straight at the top of
 the main source file, such as the name of the file, what it contains, the license it is under, and any other helpful info you might
-want to give those will will be looking at it. Then you can load modules, with some error checking so that Python doesn't print out
+want to give those who will be looking at it. Then you can load modules, with some error checking so that Python doesn't print out
 a nasty traceback, which non-programmers won't understand. The code is fairly simple, so I won't bother explaining any of it::
 
   #!/usr/bin/env python
   #
   # Tom's Pong
   # A simple pong game with realistic physics and AI
-  # http://www.tomchance.uklinux.net/projects/pong.shtml
+  # http://tomchance.org.uk/projects/pong
   #
   # Released under the GNU General Public License
 
@@ -46,8 +46,8 @@ a nasty traceback, which non-programmers won't understand. The code is fairly si
       import pygame
       from socket import *
       from pygame.locals import *
-  except ImportError, err:
-      print "couldn't load module. %s" % (err)
+  except ImportError as err:
+      print(f"couldn't load module. {err}")
       sys.exit(2)
 
 
@@ -71,16 +71,16 @@ control over your resources. Take this example of an image loading function::
 
   def load_png(name):
       """ Load image and return image object"""
-      fullname = os.path.join('data', name)
+      fullname = os.path.join("data", name)
       try:
           image = pygame.image.load(fullname)
           if image.get_alpha() is None:
               image = image.convert()
           else:
               image = image.convert_alpha()
-      except pygame.error, message:
-          print 'Cannot load image:', fullname
-          raise SystemExit, message
+      except FileNotFoundError:
+          print(f"Cannot load image: {fullname}")
+          raise SystemExit
       return image, image.get_rect()
 
 Here we make a more sophisticated image loading function than the one provided by :func:`pygame.image.load`. Note that

@@ -9,10 +9,10 @@ desktop Linux distros have.
 To ensure that our libraries are ABI-compatible with these core libraries, we
 build on an old Linux distribution in a docker container.
 
-manylinux is an older linux with a fairly compatable ABI, so you can make linux binary
+manylinux is an older linux with a fairly compatible ABI, so you can make linux binary
 wheels that run on many different linux distros.
 
-* https://bitbucket.org/pygame/pygame/issues/295/build-linux-wheels-with-manylinux
+* https://github.com/pygame/pygame/issues/295
 * https://github.com/pypa/auditwheel
 * https://github.com/pypa/manylinux
 * https://hub.docker.com/u/pygame/
@@ -146,7 +146,7 @@ These aren't meant to be copypasta'd in. Perhaps these can be worked into a scri
 
     pip install twine
 
-    python .travis_osx_upload_whl.py --no-git
+    twine upload dist/*.whl --user=pygameci
 
 
 Getting a shell
@@ -154,8 +154,26 @@ Getting a shell
 
 To be able to run bash:
 
-    docker run --name test -it pygame/manylinux2010_base_x86_64
-    docker run --name test -it pygame/manylinux2010_base_i686
+    docker run --name manylinux2010_base_x86_64 -it pygame/manylinux2010_base_x86_64
+    docker run --name manylinux2010_base_i686 -it pygame/manylinux2010_base_i686
+
+    docker run --name manylinux1_base_x86_64 -it pygame/manylinux1_base_x86_64
+    docker run --name manylinux1_base_i686 -it pygame/manylinux1_base_i686
 
 
+To copy the config.log file off there into a SDL2-2.0.12/config.log locally:
+
+    docker run pygame/manylinux1_base_i686 tar -c -C /sdl_build SDL2-2.0.12/config.log | tar x
+
+
+
+TODO
+----
+
+Maybe these need adding?
+
+- wayland, https://wayland.freedesktop.org/building.html http://www.linuxfromscratch.org/blfs/view/svn/general/wayland-protocols.html
+- vulkan, via mesa?
+- xinput,
+- xrandr,
 

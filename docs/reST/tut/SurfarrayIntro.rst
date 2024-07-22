@@ -33,20 +33,18 @@ to work your way up.
 
 Now I won't try to fool you into thinking everything is very easy. To get
 more advanced effects by modifying pixel values is very tricky. Just mastering
-Numeric Python (SciPy's original array package was Numeric, the predecessor of NumPy)
-takes a lot of learning. In this tutorial I'll be sticking with
+NumPy takes a lot of learning. In this tutorial I'll be sticking with
 the basics and using a lot of examples in an attempt to plant seeds of wisdom.
 After finishing the tutorial you should have a basic handle on how the surfarray
 works.
 
 
-Numeric Python
+NumPy
 --------------
 
 If you do not have the python NumPy package installed,
-you will need to do that now.
-You can download the package from the
-`NumPy Downloads Page <http://www.scipy.org/scipylib/download.html>`_
+you will need to do that now, by following the
+`NumPy Installation Guide <https://numpy.org/install/>`_.
 To make sure NumPy is working for you,
 you should get something like this from the interactive python prompt. ::
 
@@ -85,7 +83,7 @@ Here are some more examples of working with arrays. ::
     File "<stdin>", line 1, in <module>
   ValueError: operands could not be broadcast together with shapes (3,) (2,)
 
-We get an error on the last commend, because we try add together two arrays
+We get an error on the last command, because we try add together two arrays
 that are different sizes. In order for two arrays two operate with each other,
 including comparisons and assignment, they must have the same dimensions. It is
 very important to know that the new arrays created from slicing the original all
@@ -570,7 +568,7 @@ between 0 and 255, or you will get some undefined truncating.
 Graduation
 ----------
 
-Well there you have it. My quick primer on Numeric Python and surfarray.
+Well there you have it. My quick primer on NumPy and surfarray.
 Hopefully now you see what is possible, and even if you never use them for
 yourself, you do not have to be afraid when you see code that does. Look into
 the vgrade example for more numeric array action. There are also some *"flame"*

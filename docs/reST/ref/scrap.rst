@@ -60,7 +60,7 @@ applications which query the clipboard for the ``"my_data_type"`` data type.
 
 For an example of how the scrap module works refer to the examples page
 (:func:`pygame.examples.scrap_clipboard.main`) or the code directly in GitHub
-(`pygame/examples/scrap_clipboard.py <https://github.com/pygame/pygame/blob/master/examples/scrap_clipboard.py>`_).
+(`pygame/examples/scrap_clipboard.py <https://github.com/pygame/pygame/blob/main/examples/scrap_clipboard.py>`_).
 
 .. versionadded:: 1.8
 
@@ -77,8 +77,6 @@ For an example of how the scrap module works refer to the examples page
    Initialize the scrap module.
 
    :raises pygame.error: if unable to initialize scrap module
-
-   |
 
    .. note:: The scrap module requires :func:`pygame.display.set_mode()` be
       called before being initialized.
@@ -103,17 +101,17 @@ For an example of how the scrap module works refer to the examples page
 .. function:: get
 
    | :sl:`Gets the data for the specified type from the clipboard.`
-   | :sg:`get(type) -> bytes or str or None`
+   | :sg:`get(type) -> bytes | None`
 
-   Retrieves the data for the specified type from the clipboard. In python 3
-   the data is returned as a byte string and might need further processing
-   (such as decoding to Unicode).
+   Retrieves the data for the specified type from the clipboard. The data is
+   returned as a byte string and might need further processing (such as
+   decoding to Unicode).
 
    :param string type: data type to retrieve from the clipboard
 
-   :returns: data (byte string in python 3 or str in python 2) for the given
-      type identifier or ``None`` if no data for the given type is available
-   :rtype: bytes or str or None
+   :returns: data (bytes object) for the given type identifier or ``None`` if
+      no data for the given type is available
+   :rtype: bytes | None
 
    ::
 
@@ -161,9 +159,8 @@ For an example of how the scrap module works refer to the examples page
 
    :param string type: type identifier of the data to be placed into the
       clipboard
-   :param data: data to be place into the clipboard (in python 3 data is a
-      byte string and in python 2 data is a str)
-   :type data: bytes or str
+   :param data: data to be place into the clipboard, a bytes object
+   :type data: bytes
 
    :raises pygame.error: if unable to put the data into the clipboard
 

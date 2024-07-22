@@ -29,7 +29,7 @@ Transparency
 
 .. comment out
    The surfarray module has several methods for accessing a Surface's alpha/colorkey
-   values. None of the alpha functions are effected by overal transparency of a
+   values. None of the alpha functions are effected by overall transparency of a
    Surface, just the pixel alpha values. Here's the list of those functions.
    <dl>
    <dt>``surfarray.pixels_alpha(surface)``</dt><dd>Creates a 2D array *(integer pixel values)* that references the original surface alpha data. This will only
@@ -103,7 +103,7 @@ between 0 and 255, or you will get some undefined truncating.
 Graduation
 ==========
 
-Well there you have it. My quick primer on Numeric Python and surfarray.
+Well there you have it. My quick primer on NumPy and surfarray.
 Hopefully now you see what is possible, and even if you never use them for
 yourself, you do not have to be afraid when you see code that does. Look into
 the vgrade example for more numeric array action. There are also some *"flame"*

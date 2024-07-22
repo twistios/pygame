@@ -1,19 +1,23 @@
 """Config on Unix"""
 
-import os, sys
+import os
 from glob import glob
 import platform
 import logging
-from distutils.sysconfig import get_python_inc
+from sysconfig import get_path
 
 configcommand = os.environ.get('SDL_CONFIG', 'sdl-config',)
 configcommand = configcommand + ' --version --cflags --libs'
-localbase = os.environ.get('LOCALBASE', '')
+
 if os.environ.get('PYGAME_EXTRA_BASE', ''):
     extrabases = os.environ['PYGAME_EXTRA_BASE'].split(':')
 else:
     extrabases = []
 
+if os.environ.get('LOCALBASE', ''):
+    extrabases.append(os.environ['LOCALBASE'])
+
+extrabases.extend(("/usr", "/usr/local"))
 
 class DependencyProg:
     def __init__(self, name, envname, exename, minver, defaultlibs, version_flag="--version"):
@@ -30,6 +34,8 @@ class DependencyProg:
             config = (os.popen(command + ' ' + version_flag).readlines() +
                       os.popen(command + ' --cflags').readlines() +
                       os.popen(command + ' --libs').readlines())
+            if not config or len(config) < 3:
+                raise ValueError(f'Unexpected output from "{command}"')
             flags = ' '.join(config[1:]).split()
 
             # remove this GNU_SOURCE if there... since python has it already,
@@ -38,7 +44,7 @@ class DependencyProg:
                 flags.remove('-D_GNU_SOURCE=1')
             self.ver = config[0].strip()
             if minver and self.ver < minver:
-                err= 'WARNING: requires %s version %s (%s found)' % (self.name, self.ver, minver)
+                err= f'WARNING: requires {self.name} version {self.ver} ({minver} found)'
                 raise ValueError(err)
             self.found = 1
             self.cflags = ''
@@ -51,17 +57,17 @@ class DependencyProg:
                 inc = '-I' + '/usr/X11R6/include'
                 self.cflags = inc + ' ' + self.cflags
         except (ValueError, TypeError):
-            print ('WARNING: "%s" failed!' % command)
+            print(f'WARNING: "{command}" failed!')
             self.found = 0
             self.ver = '0'
             self.libs = defaultlibs
 
     def configure(self, incdirs, libdir):
         if self.found:
-            print (self.name + '        '[len(self.name):] + ': found ' + self.ver)
+            print(self.name + '        '[len(self.name):] + ': found ' + self.ver)
             self.found = 1
         else:
-            print (self.name + '        '[len(self.name):] + ': not found')
+            print(self.name + '        '[len(self.name):] + ': not found')
 
 class Dependency:
     def __init__(self, name, checkhead, checklib, libs):
@@ -91,10 +97,10 @@ class Dependency:
                     self.lib_dir = dir
 
         if (incname and self.lib_dir and self.inc_dir) or (not incname and self.lib_dir):
-            print (self.name + '        '[len(self.name):] + ': found')
+            print(self.name + '        '[len(self.name):] + ': found')
             self.found = 1
         else:
-            print (self.name + '        '[len(self.name):] + ': not found')
+            print(self.name + '        '[len(self.name):] + ': not found')
             print(self.name, self.checkhead, self.checklib, incdirs, libdirs)
 
 
@@ -118,36 +124,57 @@ class DependencyPython:
             except ImportError:
                 self.found = 0
         if self.found and self.header:
-            fullpath = os.path.join(get_python_inc(0), self.header)
+            fullpath = os.path.join(get_path('include'), self.header)
             if not os.path.isfile(fullpath):
                 self.found = 0
             else:
                 self.inc_dir = os.path.split(fullpath)[0]
         if self.found:
-            print (self.name + '        '[len(self.name):] + ': found', self.ver)
+            print(self.name + '        '[len(self.name):] + ': found', self.ver)
         else:
-            print (self.name + '        '[len(self.name):] + ': not found')
+            print(self.name + '        '[len(self.name):] + ': not found')
 
 sdl_lib_name = 'SDL'
 
-def main(sdl2=False):
+def main(auto_config=False):
     global origincdirs, origlibdirs
 
     #these get prefixes with '/usr' and '/usr/local' or the $LOCALBASE
-    if sdl2:
-        origincdirs = ['/include', '/include/SDL2']
-        origlibdirs = ['/lib', '/lib64', '/X11R6/lib',
-                       '/lib/i386-linux-gnu', '/lib/x86_64-linux-gnu',
-                       '/lib/arm-linux-gnueabihf/', '/lib/aarch64-linux-gnu/']
+    origincdirs = ['/include', '/include/SDL2']
+    origlibdirs = ['/lib', '/lib64', '/X11R6/lib']
 
-    else:
-        origincdirs = ['/include', '/include/SDL', '/include/SDL']
-        origlibdirs = ['/lib', '/lib64', '/X11R6/lib', '/lib/arm-linux-gnueabihf/',
-                       '/lib/aarch64-linux-gnu/']
+    # If we are on a debian based system, we also need to handle
+    # /lib/<multiarch-tuple>
+    # We have a few commands to get the correct <multiarch-tuple>, we try those
+    # one by one till we get something that works
+    for cmd in (
+        "dpkg-architecture -qDEB_HOST_MULTIARCH",
+        "gcc -print-multiarch",
+        "gcc -dumpmachine",
+    ):
+        try:
+            f = os.popen(cmd)
+        except Exception:
+            # We don't bother here, instead we try the next fallback
+            continue
+
+        try:
+            stdout = f.read().strip()
+        finally:
+            if f.close() is not None:
+                # The command didn't exist successfully, the stdout we got is
+                # useless
+                stdout = ""
+
+        if stdout:
+            # found what we were looking for
+            origlibdirs.append(f"/lib/{stdout}")
+            break
+
     if 'ORIGLIBDIRS' in os.environ and os.environ['ORIGLIBDIRS'] != "":
         origlibdirs = os.environ['ORIGLIBDIRS'].split(":")
 
-    print ('\nHunting dependencies...')
+    print('\nHunting dependencies...')
 
     def get_porttime_dep():
         """ returns the porttime Dependency.
@@ -169,7 +196,9 @@ def main(sdl2=False):
         if portmidi_as_porttime:
             return Dependency('PORTTIME', 'porttime.h', 'libportmidi.so', ['portmidi'])
         else:
-            return Dependency('PORTTIME', 'porttime.h', 'libporttime.so', ['porttime'])
+            dep = Dependency('PORTTIME', 'porttime.h', 'libporttime.so', ['porttime'])
+            if not dep.found:
+                return Dependency('PORTTIME', 'porttime.h', 'libportmidi.so', ['portmidi'])
 
     def find_freetype():
         """ modern freetype uses pkg-config. However, some older systems don't have that.
@@ -189,22 +218,13 @@ def main(sdl2=False):
             return freetype_config
         return pkg_config
 
-    if sdl2:
-        DEPS = [
-            DependencyProg('SDL', 'SDL_CONFIG', 'sdl2-config', '2.0', ['sdl']),
-            Dependency('FONT', 'SDL_ttf.h', 'libSDL2_ttf.so', ['SDL2_ttf']),
-            Dependency('IMAGE', 'SDL_image.h', 'libSDL2_image.so', ['SDL2_image']),
-            Dependency('MIXER', 'SDL_mixer.h', 'libSDL2_mixer.so', ['SDL2_mixer']),
-            #Dependency('GFX', 'SDL_gfxPrimitives.h', 'libSDL2_gfx.so', ['SDL2_gfx']),
-        ]
-    else:
-        DEPS = [
-            DependencyProg('SDL', 'SDL_CONFIG', 'sdl-config', '1.2', ['sdl']),
-            Dependency('FONT', 'SDL_ttf.h', 'libSDL_ttf.so', ['SDL_ttf']),
-            Dependency('IMAGE', 'SDL_image.h', 'libSDL_image.so', ['SDL_image']),
-            Dependency('MIXER', 'SDL_mixer.h', 'libSDL_mixer.so', ['SDL_mixer']),
-            #Dependency('GFX', 'SDL_gfxPrimitives.h', 'libSDL_gfx.so', ['SDL_gfx']),
-        ]
+    DEPS = [
+        DependencyProg('SDL', 'SDL_CONFIG', 'sdl2-config', '2.0', ['sdl']),
+        Dependency('FONT', 'SDL_ttf.h', 'libSDL2_ttf.so', ['SDL2_ttf']),
+        Dependency('IMAGE', 'SDL_image.h', 'libSDL2_image.so', ['SDL2_image']),
+        Dependency('MIXER', 'SDL_mixer.h', 'libSDL2_mixer.so', ['SDL2_mixer']),
+        #Dependency('GFX', 'SDL_gfxPrimitives.h', 'libSDL2_gfx.so', ['SDL2_gfx']),
+    ]
     DEPS.extend([
         Dependency('PNG', 'png.h', 'libpng', ['png']),
         Dependency('JPEG', 'jpeglib.h', 'libjpeg', ['jpeg']),
@@ -229,13 +249,6 @@ def main(sdl2=False):
     for extrabase in extrabases:
         incdirs += [extrabase + d for d in origincdirs]
         libdirs += [extrabase + d for d in origlibdirs]
-    incdirs += ["/usr"+d for d in origincdirs]
-    libdirs += ["/usr"+d for d in origlibdirs]
-    incdirs += ["/usr/local"+d for d in origincdirs]
-    libdirs += ["/usr/local"+d for d in origlibdirs]
-    if localbase:
-        incdirs = [localbase+d for d in origincdirs]
-        libdirs = [localbase+d for d in origlibdirs]
 
     for arg in DEPS[0].cflags.split():
         if arg[:2] == '-I':
@@ -247,7 +260,10 @@ def main(sdl2=False):
 
     for d in DEPS[1:]:
         if not d.found:
-            if "-auto" not in sys.argv:
+            if auto_config:
+                logging.info(
+                    "Some pygame dependencies were not found.")
+            else:
                 logging.warning(
                     "Some pygame dependencies were not found. "
                     "Pygame can still compile and install, but games that "
@@ -259,7 +275,7 @@ def main(sdl2=False):
 
     return DEPS
 
-if __name__ == '__main__':
-    print ("""This is the configuration subscript for Unix.
-Please run "config.py" for full configuration.""")
 
+if __name__ == '__main__':
+    print("""This is the configuration subscript for Unix.
+Please run "config.py" for full configuration.""")

@@ -338,48 +338,33 @@ int _putPixelAlpha(SDL_Surface *dst, Sint16 x, Sint16 y, Uint32 color, Uint8 alp
 		break;
 
 	case 3: 
-		{		/* Slow 24-bpp mode, usually not used */
-			Uint8 Rshift8, Gshift8, Bshift8, Ashift8;
+		{		
+			/* Slow 24-bpp mode. This is patched on the pygame end because the
+			 * original code failed on big endian */
 			Uint8 *pixel = (Uint8 *) dst->pixels + y * dst->pitch + x * 3;
+			Uint8 *dR, *dG, *dB;
+			Uint8 sR, sG, sB;
 
-			Rshift = format->Rshift;
-			Gshift = format->Gshift;
-			Bshift = format->Bshift;
-			Ashift = format->Ashift;
+			SDL_GetRGB(color, format, &sR, &sG, &sB);
 
-			Rshift8 = Rshift / 8;
-			Gshift8 = Gshift / 8;
-			Bshift8 = Bshift / 8;
-			Ashift8 = Ashift / 8;
+#if (SDL_BYTEORDER == SDL_LIL_ENDIAN)
+            dR = pixel + (format->Rshift >> 3);
+            dG = pixel + (format->Gshift >> 3);
+            dB = pixel + (format->Bshift >> 3);
+#else
+            dR = pixel + 2 - (format->Rshift >> 3);
+            dG = pixel + 2 - (format->Gshift >> 3);
+            dB = pixel + 2 - (format->Bshift >> 3);
+#endif
 
 			if (alpha == 255) {
-				*(pixel + Rshift8) = color >> Rshift;
-				*(pixel + Gshift8) = color >> Gshift;
-				*(pixel + Bshift8) = color >> Bshift;
-				*(pixel + Ashift8) = color >> Ashift;
+				*dR = sR;
+				*dG = sG;
+				*dB = sB;
 			} else {
-				Uint8 dR, dG, dB, dA = 0;
-				Uint8 sR, sG, sB, sA = 0;
-
-				dR = *((pixel) + Rshift8);
-				dG = *((pixel) + Gshift8);
-				dB = *((pixel) + Bshift8);
-				dA = *((pixel) + Ashift8);
-
-				sR = (color >> Rshift) & 0xff;
-				sG = (color >> Gshift) & 0xff;
-				sB = (color >> Bshift) & 0xff;
-				sA = (color >> Ashift) & 0xff;
-
-				dR = dR + ((sR - dR) * alpha >> 8);
-				dG = dG + ((sG - dG) * alpha >> 8);
-				dB = dB + ((sB - dB) * alpha >> 8);
-				dA = dA + ((sA - dA) * alpha >> 8);
-
-				*((pixel) + Rshift8) = dR;
-				*((pixel) + Gshift8) = dG;
-				*((pixel) + Bshift8) = dB;
-				*((pixel) + Ashift8) = dA;
+				*dR = *dR + ((sR - *dR) * alpha >> 8);
+				*dG = *dG + ((sG - *dG) * alpha >> 8);
+				*dB = *dB + ((sB - *dB) * alpha >> 8);
 			}
 		}
 		break;
@@ -639,45 +624,32 @@ int _filledRectAlpha(SDL_Surface * dst, Sint16 x1, Sint16 y1, Sint16 x2, Sint16 
 		break;
 
 	case 3:
-		{			/* Slow 24-bpp mode, usually not used */
+		{	
+			/* Slow 24-bpp mode. This is patched on the pygame end because the
+			 * original code failed on big endian */
 			Uint8 *row, *pix;
-			Uint8 dR, dG, dB, dA;
-			Uint8 Rshift8, Gshift8, Bshift8, Ashift8;
+			Uint8 *dR, *dG, *dB;
+			Uint8 sR, sG, sB;
 
-			Rshift = format->Rshift;
-			Gshift = format->Gshift;
-			Bshift = format->Bshift;
-			Ashift = format->Ashift;
-
-			Rshift8 = Rshift / 8;
-			Gshift8 = Gshift / 8;
-			Bshift8 = Bshift / 8;
-			Ashift8 = Ashift / 8;
-
-			sR = (color >> Rshift) & 0xff;
-			sG = (color >> Gshift) & 0xff;
-			sB = (color >> Bshift) & 0xff;
-			sA = (color >> Ashift) & 0xff;
-
+			SDL_GetRGB(color, format, &sR, &sG, &sB);
 			for (y = y1; y <= y2; y++) {
 				row = (Uint8 *) dst->pixels + y * dst->pitch;
 				for (x = x1; x <= x2; x++) {
 					pix = row + x * 3;
 
-					dR = *((pix) + Rshift8);
-					dG = *((pix) + Gshift8);
-					dB = *((pix) + Bshift8);
-					dA = *((pix) + Ashift8);
+#if (SDL_BYTEORDER == SDL_LIL_ENDIAN)
+            		dR = pix + (format->Rshift >> 3);
+            		dG = pix + (format->Gshift >> 3);
+            		dB = pix + (format->Bshift >> 3);
+#else
+            		dR = pix + 2 - (format->Rshift >> 3);
+            		dG = pix + 2 - (format->Gshift >> 3);
+            		dB = pix + 2 - (format->Bshift >> 3);
+#endif
 
-					dR = dR + ((sR - dR) * alpha >> 8);
-					dG = dG + ((sG - dG) * alpha >> 8);
-					dB = dB + ((sB - dB) * alpha >> 8);
-					dA = dA + ((sA - dA) * alpha >> 8);
-
-					*((pix) + Rshift8) = dR;
-					*((pix) + Gshift8) = dG;
-					*((pix) + Bshift8) = dB;
-					*((pix) + Ashift8) = dA;
+					*dR = *dR + ((sR - *dR) * alpha >> 8);
+					*dG = *dG + ((sG - *dG) * alpha >> 8);
+					*dB = *dB + ((sB - *dB) * alpha >> 8);
 				}
 			}
 		}
@@ -964,7 +936,7 @@ int pixelRGBA(SDL_Surface * dst, Sint16 x, Sint16 y, Uint8 r, Uint8 g, Uint8 b, 
 \brief Draw horizontal line without blending;
 
 Just stores the color value (including the alpha component) without blending.
-Only the same number of bits of the destination surface are transfered
+Only the same number of bits of the destination surface are transferred
 from the input color value.
 
 \param dst The surface to draw on.
@@ -2512,7 +2484,7 @@ This implementation of the Wu antialiasing code is based on Mike Abrash's
 DDJ article which was reprinted as Chapter 42 of his Graphics Programming
 Black Book, but has been optimized to work with SDL and utilizes 32-bit
 fixed-point arithmetic by A. Schiffler. The endpoint control allows the
-supression to draw the last pixel useful for rendering continuous aa-lines
+suppression to draw the last pixel useful for rendering continuous aa-lines
 with alpha<255.
 
 \param dst The surface to draw on.
@@ -3971,8 +3943,11 @@ int ellipseRGBA(SDL_Surface * dst, Sint16 x, Sint16 y, Sint16 rx, Sint16 ry, Uin
 
 /* ----- AA Ellipse */
 
-/* Windows targets do not have lrint, so provide a local inline version */
+/* Visual Studio 2015 and above define the lrint intristic function, but for
+ * compatibility with older windows compilers, we need to define it ourselves
+ */
 #if defined(_MSC_VER)
+#if _MSC_VER < 1900
 /* Detect 64bit and use intrinsic version */
 #ifdef _M_X64
 #include <emmintrin.h>
@@ -4008,6 +3983,7 @@ lrint (double flt)
 #pragma warning(pop)
 #else
 #error lrint needed for MSVC on non X86/AMD64/ARM targets.
+#endif
 #endif
 #endif
 
@@ -5506,7 +5482,7 @@ The last two parameters are optional, but required for multithreaded operation. 
 \param n the amount of vectors in the vx and vy array
 \param texture the sdl surface to use to fill the polygon
 \param texture_dx the offset of the texture relative to the screeen. if you move the polygon 10 pixels 
-to the left and want the texture to apear the same you need to increase the texture_dx value
+to the left and want the texture to appear the same you need to increase the texture_dx value
 \param texture_dy see texture_dx
 \param polyInts preallocated temp array storage for vertex sorting (used for multi-threaded operation)
 \param polyAllocated flag indicating oif the temp array was allocated (used for multi-threaded operation)
@@ -5675,7 +5651,7 @@ This standard version is calling multithreaded versions with NULL cache paramete
 \param n the amount of vectors in the vx and vy array
 \param texture the sdl surface to use to fill the polygon
 \param texture_dx the offset of the texture relative to the screeen. if you move the polygon 10 pixels 
-to the left and want the texture to apear the same you need to increase the texture_dx value
+to the left and want the texture to appear the same you need to increase the texture_dx value
 \param texture_dy see texture_dx
 
 \returns Returns 0 on success, -1 on failure.

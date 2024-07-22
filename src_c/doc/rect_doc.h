@@ -5,6 +5,9 @@
 #define DOC_RECTMOVEIP "move_ip(x, y) -> None\nmoves the rectangle, in place"
 #define DOC_RECTINFLATE "inflate(x, y) -> Rect\ngrow or shrink the rectangle size"
 #define DOC_RECTINFLATEIP "inflate_ip(x, y) -> None\ngrow or shrink the rectangle size, in place"
+#define DOC_RECTSCALEBY "scale_by(scalar) -> Rect\nscale_by(scalex, scaley) -> Rect\nscale the rectangle by given a multiplier"
+#define DOC_RECTSCALEBYIP "scale_by_ip(scalar) -> None\nscale_by_ip(scalex, scaley) -> None\ngrow or shrink the rectangle size, in place"
+#define DOC_RECTUPDATE "update(left, top, width, height) -> None\nupdate((left, top), (width, height)) -> None\nupdate(object) -> None\nsets the position and size of the rectangle"
 #define DOC_RECTCLAMP "clamp(Rect) -> Rect\nmoves the rectangle inside another"
 #define DOC_RECTCLAMPIP "clamp_ip(Rect) -> None\nmoves the rectangle inside another, in place"
 #define DOC_RECTCLIP "clip(Rect) -> Rect\ncrops a rectangle inside another"
@@ -20,6 +23,8 @@
 #define DOC_RECTCOLLIDERECT "colliderect(Rect) -> bool\ntest if two rectangles overlap"
 #define DOC_RECTCOLLIDELIST "collidelist(list) -> index\ntest if one rectangle in a list intersects"
 #define DOC_RECTCOLLIDELISTALL "collidelistall(list) -> indices\ntest if all rectangles in a list intersect"
+#define DOC_RECTCOLLIDEOBJECTS "collideobjects(rect_list) -> object\ncollideobjects(obj_list, key=func) -> object\ntest if any object in a list intersects"
+#define DOC_RECTCOLLIDEOBJECTSALL "collideobjectsall(rect_list) -> objects\ncollideobjectsall(obj_list, key=func) -> objects\ntest if all objects in a list intersect"
 #define DOC_RECTCOLLIDEDICT "collidedict(dict) -> (key, value)\ncollidedict(dict) -> None\ncollidedict(dict, use_values=0) -> (key, value)\ncollidedict(dict, use_values=0) -> None\ntest if one rectangle in a dictionary intersects"
 #define DOC_RECTCOLLIDEDICTALL "collidedictall(dict) -> [(key, value), ...]\ncollidedictall(dict, use_values=0) -> [(key, value), ...]\ntest if all rectangles in a dictionary intersect"
 
@@ -53,6 +58,22 @@ grow or shrink the rectangle size
 pygame.Rect.inflate_ip
  inflate_ip(x, y) -> None
 grow or shrink the rectangle size, in place
+
+pygame.Rect.scale_by
+ scale_by(scalar) -> Rect
+ scale_by(scalex, scaley) -> Rect
+scale the rectangle by given a multiplier
+
+pygame.Rect.scale_by_ip
+ scale_by_ip(scalar) -> None
+ scale_by_ip(scalex, scaley) -> None
+grow or shrink the rectangle size, in place
+
+pygame.Rect.update
+ update(left, top, width, height) -> None
+ update((left, top), (width, height)) -> None
+ update(object) -> None
+sets the position and size of the rectangle
 
 pygame.Rect.clamp
  clamp(Rect) -> Rect
@@ -121,6 +142,16 @@ test if one rectangle in a list intersects
 pygame.Rect.collidelistall
  collidelistall(list) -> indices
 test if all rectangles in a list intersect
+
+pygame.Rect.collideobjects
+ collideobjects(rect_list) -> object
+ collideobjects(obj_list, key=func) -> object
+test if any object in a list intersects
+
+pygame.Rect.collideobjectsall
+ collideobjectsall(rect_list) -> objects
+ collideobjectsall(obj_list, key=func) -> objects
+test if all objects in a list intersect
 
 pygame.Rect.collidedict
  collidedict(dict) -> (key, value)

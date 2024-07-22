@@ -106,7 +106,7 @@ cdef extern from "portmidi.h":
                          PmDeviceID inputDevice,
                          void *inputDriverInfo,
                          long bufferSize,
-                         long (*PmPtr) (), # long = PtTimestamp
+                         PmTimeProcPtr time_proc, # long = PtTimestamp
                          void *time_info)
 
     PmError Pm_OpenOutput(PortMidiStream** stream,
@@ -268,7 +268,7 @@ cdef class Output:
     cdef int debug
     cdef int _aborted
 
-    def __init__(self, output_device, latency=0):
+    def __init__(self, output_device, latency=0, buffer_size=256):
         """Instantiate MIDI output stream object."""
 
         cdef PmError err
@@ -288,9 +288,8 @@ cdef class Output:
         if self.debug:
             print "Opening Midi Output", output_device
 
-        # Why is buffer size 0 here?
-        err = Pm_OpenOutput(&(self.midi), output_device, NULL, 0, PmPtr, NULL,
-                            latency)
+        err = Pm_OpenOutput(&(self.midi), output_device, NULL, buffer_size,
+                            PmPtr, NULL, latency)
         if self.debug:
             print "Pm_OpenOutput err", err
 
@@ -539,11 +538,14 @@ cdef class Input:
         """Instantiate MIDI input stream object."""
 
         cdef PmError err
+        cdef PmTimeProcPtr PmPtr
         self.device = input_device
         self.debug = 0
 
+        PmPtr = <PmTimeProcPtr>&Pt_Time
+
         err = Pm_OpenInput(&(self.midi), input_device, NULL, buffersize,
-                           &Pt_Time, NULL)
+                           PmPtr, NULL)
         if err < 0:
             raise Exception(Pm_GetErrorText(err))
 

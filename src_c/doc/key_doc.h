@@ -6,10 +6,10 @@
 #define DOC_PYGAMEKEYSETMODS "set_mods(int) -> None\ntemporarily set which modifier keys are pressed"
 #define DOC_PYGAMEKEYSETREPEAT "set_repeat() -> None\nset_repeat(delay) -> None\nset_repeat(delay, interval) -> None\ncontrol how held keys are repeated"
 #define DOC_PYGAMEKEYGETREPEAT "get_repeat() -> (delay, interval)\nsee how held keys are repeated"
-#define DOC_PYGAMEKEYNAME "name(key) -> string\nget the name of a key identifier"
+#define DOC_PYGAMEKEYNAME "name(key, use_compat=True) -> str\nget the name of a key identifier"
 #define DOC_PYGAMEKEYKEYCODE "key_code(name=string) -> int\nget the key identifier from a key name"
-#define DOC_PYGAMEKEYSTARTTEXTINPUT "start_text_input() -> None\nstart handling IME compositions"
-#define DOC_PYGAMEKEYSTOPTEXTINPUT "stop_text_input() -> None\nstop handling IME compositions"
+#define DOC_PYGAMEKEYSTARTTEXTINPUT "start_text_input() -> None\nstart handling Unicode text input events"
+#define DOC_PYGAMEKEYSTOPTEXTINPUT "stop_text_input() -> None\nstop handling Unicode text input events"
 #define DOC_PYGAMEKEYSETTEXTINPUTRECT "set_text_input_rect(Rect) -> None\ncontrols the position of the candidate list"
 
 
@@ -47,7 +47,7 @@ pygame.key.get_repeat
 see how held keys are repeated
 
 pygame.key.name
- name(key) -> string
+ name(key, use_compat=True) -> str
 get the name of a key identifier
 
 pygame.key.key_code
@@ -56,11 +56,11 @@ get the key identifier from a key name
 
 pygame.key.start_text_input
  start_text_input() -> None
-start handling IME compositions
+start handling Unicode text input events
 
 pygame.key.stop_text_input
  stop_text_input() -> None
-stop handling IME compositions
+stop handling Unicode text input events
 
 pygame.key.set_text_input_rect
  set_text_input_rect(Rect) -> None

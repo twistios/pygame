@@ -1,6 +1,7 @@
 import math
 import unittest
 import sys
+import warnings
 
 import pygame
 from pygame import draw
@@ -9,7 +10,6 @@ from pygame.locals import SRCALPHA
 from pygame.tests import test_utils
 from pygame.math import Vector2
 
-PY3 = sys.version_info >= (3, 0, 0)
 
 RED = BG_RED = pygame.Color("red")
 GREEN = FG_GREEN = pygame.Color("green")
@@ -156,10 +156,9 @@ def create_bounding_rect(surface, surf_color, default_pos):
     return pygame.Rect((xmin, ymin), (xmax - xmin + 1, ymax - ymin + 1))
 
 
-class InvalidBool(object):
+class InvalidBool:
     """To help test invalid bool values."""
 
-    __nonzero__ = None
     __bool__ = None
 
 
@@ -195,7 +194,7 @@ class PythonDrawTestCase(unittest.TestCase):
 ### Ellipse Testing ###########################################################
 
 
-class DrawEllipseMixin(object):
+class DrawEllipseMixin:
     """Mixin tests for drawing ellipses.
 
     This class contains all the general ellipse drawing tests.
@@ -533,6 +532,25 @@ class DrawEllipseMixin(object):
                 for left, top in left_top:
                     not_same_size(width, height, border_width, left, top)
 
+    def test_ellipse__big_ellipse(self):
+        """Test for big ellipse that could overflow in algorithm"""
+        width = 1025
+        height = 1025
+        border = 1
+        x_value_test = int(0.4 * height)
+        y_value_test = int(0.4 * height)
+        surface = pygame.Surface((width, height))
+
+        self.draw_ellipse(surface, (255, 0, 0), (0, 0, width, height), border)
+        colored_pixels = 0
+        for y in range(height):
+            if surface.get_at((x_value_test, y)) == (255, 0, 0):
+                colored_pixels += 1
+        for x in range(width):
+            if surface.get_at((x, y_value_test)) == (255, 0, 0):
+                colored_pixels += 1
+        self.assertEqual(colored_pixels, border * 4)
+
     def test_ellipse__thick_line(self):
         """Ensures a thick lined ellipse is drawn correctly."""
         ellipse_color = pygame.Color("yellow")
@@ -607,14 +625,18 @@ class DrawEllipseMixin(object):
         surface = pygame.Surface((width + 1, height))
         rect = pygame.Rect(0, 0, width, height)
         for thickness in range(1, 37, 5):
-            surface.fill('BLACK')
-            self.draw_ellipse(surface, 'RED', rect, thickness)
+            surface.fill("BLACK")
+            self.draw_ellipse(surface, "RED", rect, thickness)
             for y in range(height):
                 number_of_changes = 0
                 drawn_pixel = False
                 for x in range(width + 1):
-                    if not drawn_pixel and surface.get_at((x, y)) == pygame.Color('RED') or \
-                           drawn_pixel and surface.get_at((x, y)) == pygame.Color('BLACK'):
+                    if (
+                        not drawn_pixel
+                        and surface.get_at((x, y)) == pygame.Color("RED")
+                        or drawn_pixel
+                        and surface.get_at((x, y)) == pygame.Color("BLACK")
+                    ):
                         drawn_pixel = not drawn_pixel
                         number_of_changes += 1
                 if y < thickness or y > height - thickness - 1:
@@ -684,7 +706,7 @@ class DrawEllipseMixin(object):
             self.assertEqual(
                 surface.get_at(pos),
                 expected_color,
-                "collide_rect={}, pos={}".format(collide_rect, pos),
+                f"collide_rect={collide_rect}, pos={pos}",
             )
 
         surface.unlock()
@@ -1052,7 +1074,7 @@ class DrawEllipseTest(DrawEllipseMixin, DrawTestCase):
 ### Line/Lines/AALine/AALines Testing #########################################
 
 
-class BaseLineMixin(object):
+class BaseLineMixin:
     """Mixin base for drawing various lines.
 
     This class contains general helper methods and setup for testing the
@@ -1087,7 +1109,7 @@ class BaseLineMixin(object):
         # Yields pairs of end points and their reverse (to test symmetry).
         # Uses a rect with the points radiating from its midleft.
         for pt in rect_corners_mids_and_center(rect):
-            if pt == rect.midleft or pt == rect.center:
+            if pt in [rect.midleft, rect.center]:
                 # Don't bother with these points.
                 continue
             yield (rect.midleft, pt)
@@ -1423,8 +1445,8 @@ class LineMixin(BaseLineMixin):
             (2,),  # Too few coords.
             (2, 1, 0),  # Too many coords.
             (2, "1"),  # Wrong type.
-            set([2, 1]),  # Wrong type.
-            dict(((2, 1),)),
+            {2, 1},  # Wrong type.
+            {2: 1},
         )  # Wrong type.
 
         for start_pos in start_pos_fmts:
@@ -1447,8 +1469,8 @@ class LineMixin(BaseLineMixin):
             (2,),  # Too few coords.
             (2, 1, 0),  # Too many coords.
             (2, "1"),  # Wrong type.
-            set([2, 1]),  # Wrong type.
-            dict(((2, 1),)),
+            {2, 1},  # Wrong type.
+            {2: 1},
         )  # Wrong type.
 
         for end_pos in end_pos_fmts:
@@ -1514,13 +1536,18 @@ class LineMixin(BaseLineMixin):
             for expected_color in self.COLORS:
                 self.draw_line(surface, expected_color, pos, (1, 0))
 
-                self.assertEqual(
-                    surface.get_at(pos), expected_color, "pos={}".format(pos)
-                )
+                self.assertEqual(surface.get_at(pos), expected_color, f"pos={pos}")
 
-    def todo_test_line__color_with_thickness(self):
+    def test_line__color_with_thickness(self):
         """Ensures a thick line is drawn using the correct color."""
-        self.fail()
+        from_x = 5
+        to_x = 10
+        y = 5
+        for surface in self._create_surfaces():
+            for expected_color in self.COLORS:
+                self.draw_line(surface, expected_color, (from_x, y), (to_x, y), 5)
+                for pos in ((x, y + i) for i in (-2, 0, 2) for x in (from_x, to_x)):
+                    self.assertEqual(surface.get_at(pos), expected_color, f"pos={pos}")
 
     def test_line__gaps(self):
         """Tests if the line drawn contains any gaps."""
@@ -1531,13 +1558,22 @@ class LineMixin(BaseLineMixin):
 
             for x in range(width):
                 pos = (x, 0)
-                self.assertEqual(
-                    surface.get_at(pos), expected_color, "pos={}".format(pos)
-                )
+                self.assertEqual(surface.get_at(pos), expected_color, f"pos={pos}")
 
-    def todo_test_line__gaps_with_thickness(self):
+    def test_line__gaps_with_thickness(self):
         """Ensures a thick line is drawn without any gaps."""
-        self.fail()
+        expected_color = (255, 255, 255)
+        thickness = 5
+        for surface in self._create_surfaces():
+            width = surface.get_width() - 1
+            h = width // 5
+            w = h * 5
+            self.draw_line(surface, expected_color, (0, 5), (w, 5 + h), thickness)
+
+            for x in range(w + 1):
+                for y in range(3, 8):
+                    pos = (x, y + ((x + 2) // 5))
+                    self.assertEqual(surface.get_at(pos), expected_color, f"pos={pos}")
 
     def test_line__bounding_rect(self):
         """Ensures draw line returns the correct bounding rect.
@@ -1660,7 +1696,7 @@ class DrawLineTest(LineMixin, DrawTestCase):
     """
 
     def test_line_endianness(self):
-        """ test color component order """
+        """test color component order"""
         for depth in (24, 32):
             surface = pygame.Surface((5, 3), 0, depth)
             surface.fill(pygame.Color(0, 0, 0))
@@ -1718,7 +1754,7 @@ class DrawLineTest(LineMixin, DrawTestCase):
         ]
 
         for p1, p2 in lines:
-            msg = "%s - %s" % (p1, p2)
+            msg = f"{p1} - {p2}"
             if p1[0] <= p2[0]:
                 plow = p1
                 phigh = p2
@@ -1737,23 +1773,18 @@ class DrawLineTest(LineMixin, DrawTestCase):
 
             for i in range(line_width):
                 p = (p1[0] + xinc * i, p1[1] + yinc * i)
-
                 self.assertEqual(self.surf.get_at(p), (255, 255, 255), msg)
 
                 p = (p2[0] + xinc * i, p2[1] + yinc * i)
-
                 self.assertEqual(self.surf.get_at(p), (255, 255, 255), msg)
 
             p = (plow[0] - 1, plow[1])
-
             self.assertEqual(self.surf.get_at(p), (0, 0, 0), msg)
 
             p = (plow[0] + xinc * line_width, plow[1] + yinc * line_width)
-
             self.assertEqual(self.surf.get_at(p), (0, 0, 0), msg)
 
             p = (phigh[0] + xinc * line_width, phigh[1] + yinc * line_width)
-
             self.assertEqual(self.surf.get_at(p), (0, 0, 0), msg)
 
             if p1[0] < p2[0]:
@@ -1768,7 +1799,7 @@ class DrawLineTest(LineMixin, DrawTestCase):
 
             w = abs(p2[0] - p1[0]) + 1 + xinc * (line_width - 1)
             h = abs(p2[1] - p1[1]) + 1 + yinc * (line_width - 1)
-            msg += ", %s" % (rec,)
+            msg += f", {rec}"
 
             self.assertEqual(rec, (rx, ry, w, h), msg)
 
@@ -2090,10 +2121,10 @@ class LinesMixin(BaseLineMixin):
             ((1, 1), (2,)),  # Too few coords.
             ((1, 1), (2, 2, 2)),  # Too many coords.
             ((1, 1), (2, "2")),  # Wrong type.
-            ((1, 1), set([2, 3])),  # Wrong type.
-            ((1, 1), dict(((2, 2), (3, 3)))),  # Wrong type.
-            set(((1, 1), (1, 2))),  # Wrong type.
-            dict(((1, 1), (4, 4))),
+            ((1, 1), {2, 3}),  # Wrong type.
+            ((1, 1), {2: 2, 3: 3}),  # Wrong type.
+            {(1, 1), (1, 2)},  # Wrong type.
+            {1: 1, 4: 4},
         )  # Wrong type.
 
         for points in points_fmts:
@@ -2207,11 +2238,40 @@ class LinesMixin(BaseLineMixin):
                 self.draw_lines(surface, expected_color, True, corners(surface))
 
                 for pos, color in border_pos_and_color(surface):
-                    self.assertEqual(color, expected_color, "pos={}".format(pos))
+                    self.assertEqual(color, expected_color, f"pos={pos}")
 
-    def todo_test_lines__color_with_thickness(self):
+    def test_lines__color_with_thickness(self):
         """Ensures thick lines are drawn using the correct color."""
-        self.fail()
+        x_left = y_top = 5
+        for surface in self._create_surfaces():
+            x_right = surface.get_width() - 5
+            y_bottom = surface.get_height() - 5
+            endpoints = (
+                (x_left, y_top),
+                (x_right, y_top),
+                (x_right, y_bottom),
+                (x_left, y_bottom),
+            )
+            for expected_color in self.COLORS:
+                self.draw_lines(surface, expected_color, True, endpoints, 3)
+
+                for t in (-1, 0, 1):
+                    for x in range(x_left, x_right + 1):
+                        for y in (y_top, y_bottom):
+                            pos = (x, y + t)
+                            self.assertEqual(
+                                surface.get_at(pos),
+                                expected_color,
+                                f"pos={pos}",
+                            )
+                    for y in range(y_top, y_bottom + 1):
+                        for x in (x_left, x_right):
+                            pos = (x + t, y)
+                            self.assertEqual(
+                                surface.get_at(pos),
+                                expected_color,
+                                f"pos={pos}",
+                            )
 
     def test_lines__gaps(self):
         """Tests if the lines drawn contain any gaps.
@@ -2224,11 +2284,30 @@ class LinesMixin(BaseLineMixin):
             self.draw_lines(surface, expected_color, True, corners(surface))
 
             for pos, color in border_pos_and_color(surface):
-                self.assertEqual(color, expected_color, "pos={}".format(pos))
+                self.assertEqual(color, expected_color, f"pos={pos}")
 
-    def todo_test_lines__gaps_with_thickness(self):
+    def test_lines__gaps_with_thickness(self):
         """Ensures thick lines are drawn without any gaps."""
-        self.fail()
+        expected_color = (255, 255, 255)
+        x_left = y_top = 5
+        for surface in self._create_surfaces():
+            h = (surface.get_width() - 11) // 5
+            w = h * 5
+            x_right = x_left + w
+            y_bottom = y_top + h
+            endpoints = ((x_left, y_top), (x_right, y_top), (x_right, y_bottom))
+            self.draw_lines(surface, expected_color, True, endpoints, 3)
+
+            for x in range(x_left, x_right + 1):
+                for t in (-1, 0, 1):
+                    pos = (x, y_top + t)
+                    self.assertEqual(surface.get_at(pos), expected_color, f"pos={pos}")
+                    pos = (x, y_top + t + ((x - 3) // 5))
+                    self.assertEqual(surface.get_at(pos), expected_color, f"pos={pos}")
+            for y in range(y_top, y_bottom + 1):
+                for t in (-1, 0, 1):
+                    pos = (x_right + t, y)
+                    self.assertEqual(surface.get_at(pos), expected_color, f"pos={pos}")
 
     def test_lines__bounding_rect(self):
         """Ensures draw lines returns the correct bounding rect.
@@ -2369,22 +2448,26 @@ class AALineMixin(BaseLineMixin):
 
         self.assertIsInstance(bounds_rect, pygame.Rect)
 
+    def test_aaline__blend_warning(self):
+        """From pygame 2, blend=False should raise DeprecationWarning."""
+        with warnings.catch_warnings(record=True) as w:
+            # Cause all warnings to always be triggered.
+            warnings.simplefilter("always")
+            # Trigger DeprecationWarning.
+            self.draw_aaline(
+                pygame.Surface((2, 2)), (0, 0, 0, 50), (0, 0), (2, 2), False
+            )
+            # Check if there is only one warning and is a DeprecationWarning.
+            self.assertEqual(len(w), 1)
+            self.assertTrue(issubclass(w[-1].category, DeprecationWarning))
+
     def test_aaline__kwargs(self):
-        """Ensures draw aaline accepts the correct kwargs
-        with and without a blend arg.
-        """
+        """Ensures draw aaline accepts the correct kwargs"""
         surface = pygame.Surface((4, 4))
         color = pygame.Color("yellow")
         start_pos = (1, 1)
         end_pos = (2, 2)
         kwargs_list = [
-            {
-                "surface": surface,
-                "color": color,
-                "start_pos": start_pos,
-                "end_pos": end_pos,
-                "blend": 1,
-            },
             {
                 "surface": surface,
                 "color": color,
@@ -2403,7 +2486,6 @@ class AALineMixin(BaseLineMixin):
         bounds_rect = self.draw_aaline(
             start_pos=(1, 2),
             end_pos=(2, 1),
-            blend=1,
             color=(10, 20, 30),
             surface=pygame.Surface((3, 2)),
         )
@@ -2434,7 +2516,6 @@ class AALineMixin(BaseLineMixin):
             "color": pygame.Color("red"),
             "start_pos": (2, 1),
             "end_pos": (2, 2),
-            "blend": 1,
         }
 
         for name in ("end_pos", "start_pos", "color", "surface"):
@@ -2450,10 +2531,6 @@ class AALineMixin(BaseLineMixin):
         color = pygame.Color("blue")
         start_pos = (0, 1)
         end_pos = (1, 2)
-
-        with self.assertRaises(TypeError):
-            # Invalid blend.
-            bounds_rect = self.draw_aaline(surface, color, start_pos, end_pos, "1")
 
         with self.assertRaises(TypeError):
             # Invalid end_pos.
@@ -2477,44 +2554,32 @@ class AALineMixin(BaseLineMixin):
         color = pygame.Color("green")
         start_pos = (1, 0)
         end_pos = (2, 0)
-        blend = 1
         kwargs_list = [
             {
                 "surface": pygame.Surface,  # Invalid surface.
                 "color": color,
                 "start_pos": start_pos,
                 "end_pos": end_pos,
-                "blend": blend,
             },
             {
                 "surface": surface,
                 "color": 2.3,  # Invalid color.
                 "start_pos": start_pos,
                 "end_pos": end_pos,
-                "blend": blend,
             },
             {
                 "surface": surface,
                 "color": color,
                 "start_pos": (0, 0, 0),  # Invalid start_pos.
                 "end_pos": end_pos,
-                "blend": blend,
             },
             {
                 "surface": surface,
                 "color": color,
                 "start_pos": start_pos,
                 "end_pos": (0,),  # Invalid end_pos.
-                "blend": blend,
             },
-            {
-                "surface": surface,
-                "color": color,
-                "start_pos": start_pos,
-                "end_pos": end_pos,
-                "blend": 1.2,
-            },
-        ]  # Invalid blend.
+        ]
 
         for kwargs in kwargs_list:
             with self.assertRaises(TypeError):
@@ -2532,7 +2597,6 @@ class AALineMixin(BaseLineMixin):
                 "color": color,
                 "start_pos": start_pos,
                 "end_pos": end_pos,
-                "blend": 1,
                 "invalid": 1,
             },
             {
@@ -2554,16 +2618,14 @@ class AALineMixin(BaseLineMixin):
         color = (255, 255, 0, 0)
         start_pos = (0, 1)
         end_pos = (1, 2)
-        blend = 0
         kwargs = {
             "surface": surface,
             "color": color,
             "start_pos": start_pos,
             "end_pos": end_pos,
-            "blend": blend,
         }
 
-        for name in ("surface", "color", "start_pos", "end_pos", "blend"):
+        for name in ("surface", "color", "start_pos", "end_pos"):
             kwargs.pop(name)
 
             if "surface" == name:
@@ -2578,32 +2640,9 @@ class AALineMixin(BaseLineMixin):
                 )
             else:
                 bounds_rect = self.draw_aaline(
-                    surface, color, start_pos, end_pos, blend, **kwargs
+                    surface, color, start_pos, end_pos, **kwargs
                 )
 
-            self.assertIsInstance(bounds_rect, pygame.Rect)
-
-    def test_aaline__valid_blend_values(self):
-        """Ensures draw aaline accepts different blend values."""
-        expected_color = pygame.Color("yellow")
-        surface_color = pygame.Color("white")
-        surface = pygame.Surface((3, 4))
-        pos = (2, 1)
-        kwargs = {
-            "surface": surface,
-            "color": expected_color,
-            "start_pos": pos,
-            "end_pos": (2, 2),
-            "blend": None,
-        }
-
-        for blend in (-10, -2, -1, 0, 1, 2, 10):
-            surface.fill(surface_color)  # Clear for each test.
-            kwargs["blend"] = blend
-
-            bounds_rect = self.draw_aaline(**kwargs)
-
-            self.assertEqual(surface.get_at(pos), expected_color)
             self.assertIsInstance(bounds_rect, pygame.Rect)
 
     def test_aaline__valid_start_pos_formats(self):
@@ -2616,7 +2655,6 @@ class AALineMixin(BaseLineMixin):
             "color": expected_color,
             "start_pos": None,
             "end_pos": (2, 2),
-            "blend": 0,
         }
         x, y = 2, 1  # start position
         positions = ((x, y), (x + 0.01, y), (x, y + 0.01), (x + 0.01, y + 0.01))
@@ -2645,7 +2683,6 @@ class AALineMixin(BaseLineMixin):
             "color": expected_color,
             "start_pos": (2, 1),
             "end_pos": None,
-            "blend": 0,
         }
         x, y = 2, 2  # end position
         positions = ((x, y), (x + 0.02, y), (x, y + 0.02), (x + 0.02, y + 0.02))
@@ -2671,15 +2708,14 @@ class AALineMixin(BaseLineMixin):
             "color": pygame.Color("red"),
             "start_pos": None,
             "end_pos": (2, 2),
-            "blend": 0,
         }
 
         start_pos_fmts = (
             (2,),  # Too few coords.
             (2, 1, 0),  # Too many coords.
             (2, "1"),  # Wrong type.
-            set([2, 1]),  # Wrong type.
-            dict(((2, 1),)),
+            {2, 1},  # Wrong type.
+            {2: 1},
         )  # Wrong type.
 
         for start_pos in start_pos_fmts:
@@ -2695,15 +2731,14 @@ class AALineMixin(BaseLineMixin):
             "color": pygame.Color("red"),
             "start_pos": (2, 2),
             "end_pos": None,
-            "blend": 0,
         }
 
         end_pos_fmts = (
             (2,),  # Too few coords.
             (2, 1, 0),  # Too many coords.
             (2, "1"),  # Wrong type.
-            set([2, 1]),  # Wrong type.
-            dict(((2, 1),)),
+            {2, 1},  # Wrong type.
+            {2: 1},
         )  # Wrong type.
 
         for end_pos in end_pos_fmts:
@@ -2723,7 +2758,6 @@ class AALineMixin(BaseLineMixin):
             "color": None,
             "start_pos": pos,
             "end_pos": (2, 1),
-            "blend": 0,
         }
         greens = (
             (0, 255, 0),
@@ -2753,7 +2787,6 @@ class AALineMixin(BaseLineMixin):
             "color": None,
             "start_pos": (1, 1),
             "end_pos": (2, 1),
-            "blend": 0,
         }
 
         for expected_color in (2.3, self):
@@ -2769,9 +2802,7 @@ class AALineMixin(BaseLineMixin):
             for expected_color in self.COLORS:
                 self.draw_aaline(surface, expected_color, pos, (1, 0))
 
-                self.assertEqual(
-                    surface.get_at(pos), expected_color, "pos={}".format(pos)
-                )
+                self.assertEqual(surface.get_at(pos), expected_color, f"pos={pos}")
 
     def test_aaline__gaps(self):
         """Tests if the aaline drawn contains any gaps.
@@ -2785,15 +2816,12 @@ class AALineMixin(BaseLineMixin):
 
             for x in range(width):
                 pos = (x, 0)
-                self.assertEqual(
-                    surface.get_at(pos), expected_color, "pos={}".format(pos)
-                )
+                self.assertEqual(surface.get_at(pos), expected_color, f"pos={pos}")
 
     def test_aaline__bounding_rect(self):
         """Ensures draw aaline returns the correct bounding rect.
 
-        Tests lines with endpoints on and off the surface and blending
-        enabled and disabled.
+        Tests lines with endpoints on and off the surface.
         """
         line_color = pygame.Color("red")
         surf_color = pygame.Color("blue")
@@ -2812,19 +2840,16 @@ class AALineMixin(BaseLineMixin):
             for pos in rect_corners_mids_and_center(surf_rect):
                 helper_rect.center = pos
 
-                for blend in (False, True):  # Test non-blending and blending.
-                    for start, end in self._rect_lines(helper_rect):
-                        surface.fill(surf_color)  # Clear for each test.
+                for start, end in self._rect_lines(helper_rect):
+                    surface.fill(surf_color)  # Clear for each test.
 
-                        bounding_rect = self.draw_aaline(
-                            surface, line_color, start, end, blend
-                        )
+                    bounding_rect = self.draw_aaline(surface, line_color, start, end)
 
-                        # Calculating the expected_rect after the line is
-                        # drawn (it uses what is actually drawn).
-                        expected_rect = create_bounding_rect(surface, surf_color, start)
+                    # Calculating the expected_rect after the line is
+                    # drawn (it uses what is actually drawn).
+                    expected_rect = create_bounding_rect(surface, surf_color, start)
 
-                        self.assertEqual(bounding_rect, expected_rect)
+                    self.assertEqual(bounding_rect, expected_rect)
 
     def test_aaline__surface_clip(self):
         """Ensures draw aaline respects a surface's clip area."""
@@ -2843,41 +2868,32 @@ class AALineMixin(BaseLineMixin):
         for center in rect_corners_mids_and_center(clip_rect):
             pos_rect.center = center
 
-            for blend in (0, 1):  # Test non-blending and blending.
-                # Get the expected points by drawing the aaline without the
-                # clip area set.
-                surface.set_clip(None)
-                surface.fill(surface_color)
-                self.draw_aaline(
-                    surface, aaline_color, pos_rect.midtop, pos_rect.midbottom, blend
-                )
+            # Get the expected points by drawing the aaline without the
+            # clip area set.
+            surface.set_clip(None)
+            surface.fill(surface_color)
+            self.draw_aaline(surface, aaline_color, pos_rect.midtop, pos_rect.midbottom)
 
-                # Need to get the points that are NOT surface_color due to the
-                # way blend=0 uses the color black to antialias.
-                expected_pts = get_color_points(
-                    surface, surface_color, clip_rect, False
-                )
+            expected_pts = get_color_points(surface, surface_color, clip_rect, False)
 
-                # Clear the surface and set the clip area. Redraw the aaline
-                # and check that only the clip area is modified.
-                surface.fill(surface_color)
-                surface.set_clip(clip_rect)
+            # Clear the surface and set the clip area. Redraw the aaline
+            # and check that only the clip area is modified.
+            surface.fill(surface_color)
+            surface.set_clip(clip_rect)
 
-                self.draw_aaline(
-                    surface, aaline_color, pos_rect.midtop, pos_rect.midbottom, blend
-                )
+            self.draw_aaline(surface, aaline_color, pos_rect.midtop, pos_rect.midbottom)
 
-                surface.lock()  # For possible speed up.
+            surface.lock()  # For possible speed up.
 
-                # Check all the surface points to ensure the expected_pts
-                # are not surface_color.
-                for pt in ((x, y) for x in range(surfw) for y in range(surfh)):
-                    if pt in expected_pts:
-                        self.assertNotEqual(surface.get_at(pt), surface_color, pt)
-                    else:
-                        self.assertEqual(surface.get_at(pt), surface_color, pt)
+            # Check all the surface points to ensure the expected_pts
+            # are not surface_color.
+            for pt in ((x, y) for x in range(surfw) for y in range(surfh)):
+                if pt in expected_pts:
+                    self.assertNotEqual(surface.get_at(pt), surface_color, pt)
+                else:
+                    self.assertEqual(surface.get_at(pt), surface_color, pt)
 
-                surface.unlock()
+            surface.unlock()
 
 
 # Commented out to avoid cluttering the test output. Add back in if draw_py
@@ -2898,7 +2914,7 @@ class DrawAALineTest(AALineMixin, DrawTestCase):
     """
 
     def test_aaline_endianness(self):
-        """ test color component order """
+        """test color component order"""
         for depth in (24, 32):
             surface = pygame.Surface((5, 3), 0, depth)
             surface.fill(pygame.Color(0, 0, 0))
@@ -2923,10 +2939,7 @@ class DrawAALineTest(AALineMixin, DrawTestCase):
 
             for pt in check_points:
                 color = should.get(pt, BG_RED)
-                if PY3:  # "subTest" is sooo helpful, but does not exist in PY2
-                    with self.subTest(from_pt=from_point, pt=pt, to=to_point):
-                        self.assertEqual(self.surface.get_at(pt), color)
-                else:
+                with self.subTest(from_pt=from_point, pt=pt, to=to_point):
                     self.assertEqual(self.surface.get_at(pt), color)
 
             # reset
@@ -2968,7 +2981,6 @@ class DrawAALineTest(AALineMixin, DrawTestCase):
         check_both_directions((6, 4), (4, 6), [(5, 5)])
 
     def test_short_line_anti_aliasing(self):
-
         self.surface = pygame.Surface((10, 10))
         draw.rect(self.surface, BG_RED, (0, 0, 10, 10), 0)
 
@@ -3191,21 +3203,25 @@ class AALinesMixin(BaseLineMixin):
 
         self.assertIsInstance(bounds_rect, pygame.Rect)
 
+    def test_aalines__blend_warning(self):
+        """From pygame 2, blend=False should raise DeprecationWarning."""
+        with warnings.catch_warnings(record=True) as w:
+            # Cause all warnings to always be triggered.
+            warnings.simplefilter("always")
+            # Trigger DeprecationWarning.
+            self.draw_aalines(
+                pygame.Surface((2, 2)), (0, 0, 0, 50), False, ((0, 0), (1, 1)), False
+            )
+            # Check if there is only one warning and is a DeprecationWarning.
+            self.assertEqual(len(w), 1)
+            self.assertTrue(issubclass(w[-1].category, DeprecationWarning))
+
     def test_aalines__kwargs(self):
-        """Ensures draw aalines accepts the correct kwargs
-        with and without a blend arg.
-        """
+        """Ensures draw aalines accepts the correct kwargs."""
         surface = pygame.Surface((4, 4))
         color = pygame.Color("yellow")
         points = ((0, 0), (1, 1), (2, 2))
         kwargs_list = [
-            {
-                "surface": surface,
-                "color": color,
-                "closed": False,
-                "points": points,
-                "blend": 1,
-            },
             {"surface": surface, "color": color, "closed": False, "points": points},
         ]
 
@@ -3219,7 +3235,6 @@ class AALinesMixin(BaseLineMixin):
         bounds_rect = self.draw_aalines(
             closed=1,
             points=((0, 0), (1, 1), (2, 2)),
-            blend=1,
             color=(10, 20, 30),
             surface=pygame.Surface((3, 2)),
         )
@@ -3250,7 +3265,6 @@ class AALinesMixin(BaseLineMixin):
             "color": pygame.Color("red"),
             "closed": 1,
             "points": ((2, 2), (1, 1)),
-            "blend": 1,
         }
 
         for name in ("points", "closed", "color", "surface"):
@@ -3294,7 +3308,6 @@ class AALinesMixin(BaseLineMixin):
             "color": pygame.Color("green"),
             "closed": False,
             "points": ((1, 2), (2, 1)),
-            "blend": 1,
         }
 
         invalid_kwargs = {
@@ -3302,10 +3315,9 @@ class AALinesMixin(BaseLineMixin):
             "color": 2.3,
             "closed": InvalidBool(),
             "points": (0, 0, 0),
-            "blend": 1.2,
         }
 
-        for kwarg in ("surface", "color", "closed", "points", "blend"):
+        for kwarg in ("surface", "color", "closed", "points"):
             kwargs = dict(valid_kwargs)
             kwargs[kwarg] = invalid_kwargs[kwarg]
 
@@ -3324,7 +3336,6 @@ class AALinesMixin(BaseLineMixin):
                 "color": color,
                 "closed": closed,
                 "points": points,
-                "blend": 1,
                 "invalid": 1,
             },
             {
@@ -3346,16 +3357,14 @@ class AALinesMixin(BaseLineMixin):
         color = (255, 255, 0, 0)
         closed = 0
         points = ((1, 2), (2, 1))
-        blend = 1
         kwargs = {
             "surface": surface,
             "color": color,
             "closed": closed,
             "points": points,
-            "blend": blend,
         }
 
-        for name in ("surface", "color", "closed", "points", "blend"):
+        for name in ("surface", "color", "closed", "points"):
             kwargs.pop(name)
 
             if "surface" == name:
@@ -3370,32 +3379,9 @@ class AALinesMixin(BaseLineMixin):
                 )
             else:
                 bounds_rect = self.draw_aalines(
-                    surface, color, closed, points, blend, **kwargs
+                    surface, color, closed, points, **kwargs
                 )
 
-            self.assertIsInstance(bounds_rect, pygame.Rect)
-
-    def test_aalines__valid_blend_values(self):
-        """Ensures draw aalines accepts different blend values."""
-        expected_color = pygame.Color("yellow")
-        surface_color = pygame.Color("white")
-        surface = pygame.Surface((3, 4))
-        pos = (1, 1)
-        kwargs = {
-            "surface": surface,
-            "color": expected_color,
-            "closed": False,
-            "points": (pos, (1, 3)),
-            "blend": None,
-        }
-
-        for blend in (-10, -2, -1, 0, 1, 2, 10):
-            surface.fill(surface_color)  # Clear for each test.
-            kwargs["blend"] = blend
-
-            bounds_rect = self.draw_aalines(**kwargs)
-
-            self.assertEqual(surface.get_at(pos), expected_color, blend)
             self.assertIsInstance(bounds_rect, pygame.Rect)
 
     def test_aalines__valid_points_format(self):
@@ -3408,7 +3394,6 @@ class AALinesMixin(BaseLineMixin):
             "color": expected_color,
             "closed": False,
             "points": None,
-            "blend": 0,
         }
 
         # The point type can be a tuple/list/Vector2.
@@ -3449,17 +3434,16 @@ class AALinesMixin(BaseLineMixin):
             "color": pygame.Color("red"),
             "closed": False,
             "points": None,
-            "blend": 1,
         }
 
         points_fmts = (
             ((1, 1), (2,)),  # Too few coords.
             ((1, 1), (2, 2, 2)),  # Too many coords.
             ((1, 1), (2, "2")),  # Wrong type.
-            ((1, 1), set([2, 3])),  # Wrong type.
-            ((1, 1), dict(((2, 2), (3, 3)))),  # Wrong type.
-            set(((1, 1), (1, 2))),  # Wrong type.
-            dict(((1, 1), (4, 4))),
+            ((1, 1), {2, 3}),  # Wrong type.
+            ((1, 1), {2: 2, 3: 3}),  # Wrong type.
+            {(1, 1), (1, 2)},  # Wrong type.
+            {1: 1, 4: 4},
         )  # Wrong type.
 
         for points in points_fmts:
@@ -3475,7 +3459,6 @@ class AALinesMixin(BaseLineMixin):
             "color": pygame.Color("red"),
             "closed": False,
             "points": None,
-            "blend": 1,
         }
 
         for points in ([], ((1, 1),)):  # Too few points.
@@ -3496,7 +3479,6 @@ class AALinesMixin(BaseLineMixin):
             "color": line_color,
             "closed": None,
             "points": ((1, 1), (4, 1), (4, 4), (1, 4)),
-            "blend": 0,
         }
 
         true_values = (-7, 1, 10, "2", 3.1, (4,), [5], True)
@@ -3523,7 +3505,6 @@ class AALinesMixin(BaseLineMixin):
             "color": None,
             "closed": False,
             "points": (pos, (2, 1)),
-            "blend": 0,
         }
         greens = (
             (0, 255, 0),
@@ -3553,7 +3534,6 @@ class AALinesMixin(BaseLineMixin):
             "color": None,
             "closed": False,
             "points": ((1, 1), (1, 2)),
-            "blend": 0,
         }
 
         for expected_color in (2.3, self):
@@ -3573,7 +3553,7 @@ class AALinesMixin(BaseLineMixin):
                 self.draw_aalines(surface, expected_color, True, corners(surface))
 
                 for pos, color in border_pos_and_color(surface):
-                    self.assertEqual(color, expected_color, "pos={}".format(pos))
+                    self.assertEqual(color, expected_color, f"pos={pos}")
 
     def test_aalines__gaps(self):
         """Tests if the aalines drawn contain any gaps.
@@ -3588,7 +3568,7 @@ class AALinesMixin(BaseLineMixin):
             self.draw_aalines(surface, expected_color, True, corners(surface))
 
             for pos, color in border_pos_and_color(surface):
-                self.assertEqual(color, expected_color, "pos={}".format(pos))
+                self.assertEqual(color, expected_color, f"pos={pos}")
 
     def test_aalines__bounding_rect(self):
         """Ensures draw aalines returns the correct bounding rect.
@@ -3616,19 +3596,16 @@ class AALinesMixin(BaseLineMixin):
                 pts = (pos_rect.midleft, pos_rect.midtop, pos_rect.midright)
                 pos = pts[0]  # Rect position if nothing drawn.
 
-                for blend in (False, True):  # Test non-blending and blending.
-                    for closed in (True, False):
-                        surface.fill(surf_color)  # Clear for each test.
+                for closed in (True, False):
+                    surface.fill(surf_color)  # Clear for each test.
 
-                        bounding_rect = self.draw_aalines(
-                            surface, line_color, closed, pts, blend
-                        )
+                    bounding_rect = self.draw_aalines(surface, line_color, closed, pts)
 
-                        # Calculating the expected_rect after the lines are
-                        # drawn (it uses what is actually drawn).
-                        expected_rect = create_bounding_rect(surface, surf_color, pos)
+                    # Calculating the expected_rect after the lines are
+                    # drawn (it uses what is actually drawn).
+                    expected_rect = create_bounding_rect(surface, surf_color, pos)
 
-                        self.assertEqual(bounding_rect, expected_rect)
+                    self.assertEqual(bounding_rect, expected_rect)
 
     def test_aalines__surface_clip(self):
         """Ensures draw aalines respects a surface's clip area."""
@@ -3647,39 +3624,35 @@ class AALinesMixin(BaseLineMixin):
         for center in rect_corners_mids_and_center(clip_rect):
             pos_rect.center = center
             pts = (pos_rect.midtop, pos_rect.center, pos_rect.midbottom)
-
             for closed in (True, False):  # Test closed and not closed.
-                for blend in (0, 1):  # Test non-blending and blending.
-                    # Get the expected points by drawing the aalines without
-                    # the clip area set.
-                    surface.set_clip(None)
-                    surface.fill(surface_color)
-                    self.draw_aalines(surface, aaline_color, closed, pts, blend)
+                # Get the expected points by drawing the aalines without
+                # the clip area set.
+                surface.set_clip(None)
+                surface.fill(surface_color)
+                self.draw_aalines(surface, aaline_color, closed, pts)
 
-                    # Need to get the points that are NOT surface_color due to
-                    # the way blend=0 uses the color black to antialias.
-                    expected_pts = get_color_points(
-                        surface, surface_color, clip_rect, False
-                    )
+                expected_pts = get_color_points(
+                    surface, surface_color, clip_rect, False
+                )
 
-                    # Clear the surface and set the clip area. Redraw the
-                    # aalines and check that only the clip area is modified.
-                    surface.fill(surface_color)
-                    surface.set_clip(clip_rect)
+                # Clear the surface and set the clip area. Redraw the
+                # aalines and check that only the clip area is modified.
+                surface.fill(surface_color)
+                surface.set_clip(clip_rect)
 
-                    self.draw_aalines(surface, aaline_color, closed, pts, blend)
+                self.draw_aalines(surface, aaline_color, closed, pts)
 
-                    surface.lock()  # For possible speed up.
+                surface.lock()  # For possible speed up.
 
-                    # Check all the surface points to ensure the expected_pts
-                    # are not surface_color.
-                    for pt in ((x, y) for x in range(surfw) for y in range(surfh)):
-                        if pt in expected_pts:
-                            self.assertNotEqual(surface.get_at(pt), surface_color, pt)
-                        else:
-                            self.assertEqual(surface.get_at(pt), surface_color, pt)
+                # Check all the surface points to ensure the expected_pts
+                # are not surface_color.
+                for pt in ((x, y) for x in range(surfw) for y in range(surfh)):
+                    if pt in expected_pts:
+                        self.assertNotEqual(surface.get_at(pt), surface_color, pt)
+                    else:
+                        self.assertEqual(surface.get_at(pt), surface_color, pt)
 
-                    surface.unlock()
+                surface.unlock()
 
 
 # Commented out to avoid cluttering the test output. Add back in if draw_py
@@ -3720,7 +3693,7 @@ CROSS = (
 )
 
 
-class DrawPolygonMixin(object):
+class DrawPolygonMixin:
     """Mixin tests for drawing polygons.
 
     This class contains all the general polygon drawing tests.
@@ -3978,10 +3951,10 @@ class DrawPolygonMixin(object):
             ((1, 1), (2, 1), (2,)),  # Too few coords.
             ((1, 1), (2, 1), (2, 2, 2)),  # Too many coords.
             ((1, 1), (2, 1), (2, "2")),  # Wrong type.
-            ((1, 1), (2, 1), set([2, 3])),  # Wrong type.
-            ((1, 1), (2, 1), dict(((2, 2), (3, 3)))),  # Wrong type.
-            set(((1, 1), (2, 1), (2, 2), (1, 2))),  # Wrong type.
-            dict(((1, 1), (2, 2), (3, 3), (4, 4))),
+            ((1, 1), (2, 1), {2, 3}),  # Wrong type.
+            ((1, 1), (2, 1), {2: 2, 3: 3}),  # Wrong type.
+            {(1, 1), (2, 1), (2, 2), (1, 2)},  # Wrong type.
+            {1: 1, 2: 2, 3: 3, 4: 4},
         )  # Wrong type.
 
         for points in points_fmts:
@@ -4000,7 +3973,7 @@ class DrawPolygonMixin(object):
         }
 
         points_fmts = (
-            tuple(),  # Too few points.
+            (),  # Too few points.
             ((1, 1),),  # Too few points.
             ((1, 1), (2, 1)),
         )  # Too few points.
@@ -4250,7 +4223,7 @@ class DrawPolygonMixin(object):
                         self.assertEqual(
                             bounding_rect,
                             expected_rect,
-                            "thickness={}".format(thickness),
+                            f"thickness={thickness}",
                         )
 
     def test_polygon__surface_clip(self):
@@ -4306,6 +4279,75 @@ class DrawPolygonMixin(object):
 
                 surface.unlock()
 
+    # Test cases for Issue #3989 (fixed on #4191)
+    # This tests the fill polygon bug to avoid
+    def test_polygon_large_coords_3989(self):
+        """
+        Ensures draw polygon works correctly with large points.
+        Testing the drawings of filled polygons
+        """
+        point_a = (600, 50)
+        point_b = (50, 600)
+        extreme_points_coords = (58000, 100000)
+        extreme_negative_coords = (-58000, -100000)
+        extreme_negative_x = (-58000, 100000)
+        extreme_negative_y = (58000, -100000)
+
+        surf_w = surf_h = 650
+        surface = pygame.Surface((surf_w, surf_h))
+
+        green = (0, 255, 0)
+        white = (0, 0, 0, 255)
+
+        # Draw white background
+        pygame.draw.rect(surface, white, (0, 0, surf_w, surf_h), 0)
+
+        # Extreme points case
+        def extreme_points(self):
+            self.assertEqual(surface.get_at((640, 50)), white)
+            self.assertEqual(surface.get_at((50, 640)), white)
+
+        # Extreme negative points case
+        def extreme_negative_pass(self):
+            self.assertEqual(surface.get_at((600, 25)), white)
+
+        def extreme_negative_fail(self):
+            self.assertNotEqual(surface.get_at((5, 5)), white)
+
+        # Extreme negative x case
+        def extreme_x_pass(self):
+            self.assertEqual(surface.get_at((600, 600)), white)
+
+        def extreme_x_fail(self):
+            self.assertNotEqual(surface.get_at((100, 640)), white)
+
+        # Extreme negative y case
+        def extreme_y_pass(self):
+            self.assertEqual(surface.get_at((600, 600)), white)
+
+        def extreme_y_fail(self):
+            self.assertNotEqual(surface.get_at((300, 300)), white)
+
+        # Checks the surface point to ensure the polygon has been drawn correctly.
+        # Uses multiple passing and failing test cases depending on the polygon
+        self.draw_polygon(surface, green, (point_a, point_b, extreme_points_coords))
+        extreme_points(self)
+
+        pygame.draw.rect(surface, white, (0, 0, surf_w, surf_h), 0)
+        self.draw_polygon(surface, green, (point_a, point_b, extreme_negative_coords))
+        extreme_negative_pass(self)
+        extreme_negative_fail(self)
+
+        pygame.draw.rect(surface, white, (0, 0, surf_w, surf_h), 0)
+        self.draw_polygon(surface, green, (point_a, point_b, extreme_negative_x))
+        extreme_x_pass(self)
+        extreme_x_fail(self)
+
+        pygame.draw.rect(surface, white, (0, 0, surf_w, surf_h), 0)
+        self.draw_polygon(surface, green, (point_a, point_b, extreme_negative_y))
+        extreme_y_pass(self)
+        extreme_y_fail(self)
+
 
 class DrawPolygonTest(DrawPolygonMixin, DrawTestCase):
     """Test draw module function polygon.
@@ -4329,7 +4371,7 @@ class DrawPolygonTest(DrawPolygonMixin, DrawTestCase):
 ### Rect Testing ##############################################################
 
 
-class DrawRectMixin(object):
+class DrawRectMixin:
     """Mixin tests for drawing rects.
 
     This class contains all the general rect drawing tests.
@@ -4338,7 +4380,15 @@ class DrawRectMixin(object):
     def test_rect__args(self):
         """Ensures draw rect accepts the correct args."""
         bounds_rect = self.draw_rect(
-            pygame.Surface((2, 2)), (20, 10, 20, 150), pygame.Rect((0, 0), (1, 1)), 2, 1, 2, 3, 4, 5
+            pygame.Surface((2, 2)),
+            (20, 10, 20, 150),
+            pygame.Rect((0, 0), (1, 1)),
+            2,
+            1,
+            2,
+            3,
+            4,
+            5,
         )
 
         self.assertIsInstance(bounds_rect, pygame.Rect)
@@ -4365,7 +4415,7 @@ class DrawRectMixin(object):
                 "border_top_left_radius": 5,
                 "border_top_right_radius": 20,
                 "border_bottom_left_radius": 15,
-                "border_bottom_right_radius": 0
+                "border_bottom_right_radius": 0,
             },
             {
                 "surface": pygame.Surface((1, 2)),
@@ -4419,7 +4469,7 @@ class DrawRectMixin(object):
             "border_top_left_radius": 5,
             "border_top_right_radius": 20,
             "border_bottom_left_radius": 15,
-            "border_bottom_right_radius": 0
+            "border_bottom_right_radius": 0,
         }
 
         for name in ("rect", "color", "surface"):
@@ -4437,23 +4487,27 @@ class DrawRectMixin(object):
 
         with self.assertRaises(TypeError):
             # Invalid border_bottom_right_radius.
-            bounds_rect = self.draw_rect(surface, color, rect, 2,
-                                         border_bottom_right_radius="rad")
+            bounds_rect = self.draw_rect(
+                surface, color, rect, 2, border_bottom_right_radius="rad"
+            )
 
         with self.assertRaises(TypeError):
             # Invalid border_bottom_left_radius.
-            bounds_rect = self.draw_rect(surface, color, rect, 2,
-                                         border_bottom_left_radius="rad")
+            bounds_rect = self.draw_rect(
+                surface, color, rect, 2, border_bottom_left_radius="rad"
+            )
 
         with self.assertRaises(TypeError):
             # Invalid border_top_right_radius.
-            bounds_rect = self.draw_rect(surface, color, rect, 2,
-                                         border_top_right_radius="rad")
+            bounds_rect = self.draw_rect(
+                surface, color, rect, 2, border_top_right_radius="rad"
+            )
 
         with self.assertRaises(TypeError):
             # Invalid border_top_left_radius.
-            bounds_rect = self.draw_rect(surface, color, rect, 2,
-                                         border_top_left_radius="draw")
+            bounds_rect = self.draw_rect(
+                surface, color, rect, 2, border_top_left_radius="draw"
+            )
 
         with self.assertRaises(TypeError):
             # Invalid border_radius.
@@ -4490,7 +4544,7 @@ class DrawRectMixin(object):
                 "border_top_left_radius": 5,
                 "border_top_right_radius": 20,
                 "border_bottom_left_radius": 15,
-                "border_bottom_right_radius": 0
+                "border_bottom_right_radius": 0,
             },
             {
                 "surface": surface,
@@ -4501,7 +4555,7 @@ class DrawRectMixin(object):
                 "border_top_left_radius": 5,
                 "border_top_right_radius": 20,
                 "border_bottom_left_radius": 15,
-                "border_bottom_right_radius": 0
+                "border_bottom_right_radius": 0,
             },
             {
                 "surface": surface,
@@ -4512,7 +4566,7 @@ class DrawRectMixin(object):
                 "border_top_left_radius": 5,
                 "border_top_right_radius": 20,
                 "border_bottom_left_radius": 15,
-                "border_bottom_right_radius": 0
+                "border_bottom_right_radius": 0,
             },
             {
                 "surface": surface,
@@ -4523,7 +4577,7 @@ class DrawRectMixin(object):
                 "border_top_left_radius": 5,
                 "border_top_right_radius": 20,
                 "border_bottom_left_radius": 15,
-                "border_bottom_right_radius": 0
+                "border_bottom_right_radius": 0,
             },
             {
                 "surface": surface,
@@ -4534,7 +4588,7 @@ class DrawRectMixin(object):
                 "border_top_left_radius": 5,
                 "border_top_right_radius": 20,
                 "border_bottom_left_radius": 15,
-                "border_bottom_right_radius": 0
+                "border_bottom_right_radius": 0,
             },
             {
                 "surface": surface,
@@ -4545,7 +4599,7 @@ class DrawRectMixin(object):
                 "border_top_left_radius": 5.5,  # Invalid top_left_radius.
                 "border_top_right_radius": 20,
                 "border_bottom_left_radius": 15,
-                "border_bottom_right_radius": 0
+                "border_bottom_right_radius": 0,
             },
             {
                 "surface": surface,
@@ -4556,7 +4610,7 @@ class DrawRectMixin(object):
                 "border_top_left_radius": 5,
                 "border_top_right_radius": "a",  # Invalid top_right_radius.
                 "border_bottom_left_radius": 15,
-                "border_bottom_right_radius": 0
+                "border_bottom_right_radius": 0,
             },
             {
                 "surface": surface,
@@ -4567,7 +4621,7 @@ class DrawRectMixin(object):
                 "border_top_left_radius": 5,
                 "border_top_right_radius": 20,
                 "border_bottom_left_radius": "c",  # Invalid bottom_left_radius
-                "border_bottom_right_radius": 0
+                "border_bottom_right_radius": 0,
             },
             {
                 "surface": surface,
@@ -4578,7 +4632,7 @@ class DrawRectMixin(object):
                 "border_top_left_radius": 5,
                 "border_top_right_radius": 20,
                 "border_bottom_left_radius": 15,
-                "border_bottom_right_radius": "d"  # Invalid bottom_right.
+                "border_bottom_right_radius": "d",  # Invalid bottom_right.
             },
         ]
 
@@ -4617,8 +4671,7 @@ class DrawRectMixin(object):
         color = (255, 255, 255, 0)
         rect = pygame.Rect((1, 0), (2, 5))
         width = 0
-        kwargs = {"surface": surface, "color": color, "rect": rect,
-                  "width": width}
+        kwargs = {"surface": surface, "color": color, "rect": rect, "width": width}
 
         for name in ("surface", "color", "rect", "width"):
             kwargs.pop(name)
@@ -4694,7 +4747,7 @@ class DrawRectMixin(object):
             [1, 2],
             [1, 2, 3],
             [1, 2, 3, 4, 5],
-            set([1, 2, 3, 4]),
+            {1, 2, 3, 4},
             [1, 2, 3, "4"],
         )
 
@@ -4822,6 +4875,35 @@ class DrawRectMixin(object):
 
             self.assertNotEqual(color_at_pt, self.color)
 
+    def test_rect__draw_line_width(self):
+        surface = pygame.Surface((100, 100))
+        surface.fill("black")
+        color = pygame.Color(255, 255, 255)
+        rect_width = 80
+        rect_height = 50
+        line_width = 10
+        pygame.draw.rect(
+            surface, color, pygame.Rect(0, 0, rect_width, rect_height), line_width
+        )
+        for i in range(line_width):
+            self.assertEqual(surface.get_at((i, i)), color)
+            self.assertEqual(surface.get_at((rect_width - i - 1, i)), color)
+            self.assertEqual(surface.get_at((i, rect_height - i - 1)), color)
+            self.assertEqual(
+                surface.get_at((rect_width - i - 1, rect_height - i - 1)), color
+            )
+        self.assertEqual(surface.get_at((line_width, line_width)), (0, 0, 0))
+        self.assertEqual(
+            surface.get_at((rect_width - line_width - 1, line_width)), (0, 0, 0)
+        )
+        self.assertEqual(
+            surface.get_at((line_width, rect_height - line_width - 1)), (0, 0, 0)
+        )
+        self.assertEqual(
+            surface.get_at((rect_width - line_width - 1, rect_height - line_width - 1)),
+            (0, 0, 0),
+        )
+
     def test_rect__bounding_rect(self):
         """Ensures draw rect returns the correct bounding rect.
 
@@ -4866,7 +4948,7 @@ class DrawRectMixin(object):
                         self.assertEqual(
                             bounding_rect,
                             expected_rect,
-                            "thickness={}".format(thickness),
+                            f"thickness={thickness}",
                         )
 
     def test_rect__surface_clip(self):
@@ -4939,7 +5021,7 @@ class DrawRectTest(DrawRectMixin, DrawTestCase):
 ### Circle Testing ############################################################
 
 
-class DrawCircleMixin(object):
+class DrawCircleMixin:
     """Mixin tests for drawing circles.
 
     This class contains all the general circle drawing tests.
@@ -4955,9 +5037,8 @@ class DrawCircleMixin(object):
 
     def test_circle__args_without_width(self):
         """Ensures draw circle accepts the args without a width and
-        quadrants. """
-        bounds_rect = self.draw_circle(pygame.Surface((2, 2)), (0, 0, 0, 50),
-                                       (1, 1), 1)
+        quadrants."""
+        bounds_rect = self.draw_circle(pygame.Surface((2, 2)), (0, 0, 0, 50), (1, 1), 1)
 
         self.assertIsInstance(bounds_rect, pygame.Rect)
 
@@ -4993,7 +5074,7 @@ class DrawCircleMixin(object):
                 "draw_top_right": True,
                 "draw_top_left": True,
                 "draw_bottom_left": False,
-                "draw_bottom_right": True
+                "draw_bottom_right": True,
             },
             {
                 "surface": pygame.Surface((2, 1)),
@@ -5052,7 +5133,7 @@ class DrawCircleMixin(object):
             "draw_top_right": False,
             "draw_top_left": False,
             "draw_bottom_left": False,
-            "draw_bottom_right": True
+            "draw_bottom_right": True,
         }
 
         for name in ("radius", "center", "color", "surface"):
@@ -5071,23 +5152,27 @@ class DrawCircleMixin(object):
 
         with self.assertRaises(TypeError):
             # Invalid draw_top_right.
-            bounds_rect = self.draw_circle(surface, color, center, radius, 1,
-                                           "a", 1, 1, 1)
+            bounds_rect = self.draw_circle(
+                surface, color, center, radius, 1, "a", 1, 1, 1
+            )
 
         with self.assertRaises(TypeError):
             # Invalid draw_top_left.
-            bounds_rect = self.draw_circle(surface, color, center, radius, 1,
-                                           1, "b", 1, 1)
+            bounds_rect = self.draw_circle(
+                surface, color, center, radius, 1, 1, "b", 1, 1
+            )
 
         with self.assertRaises(TypeError):
             # Invalid draw_bottom_left.
-            bounds_rect = self.draw_circle(surface, color, center, radius, 1,
-                                           1, 1, "c", 1)
+            bounds_rect = self.draw_circle(
+                surface, color, center, radius, 1, 1, 1, "c", 1
+            )
 
         with self.assertRaises(TypeError):
             # Invalid draw_bottom_right.
-            bounds_rect = self.draw_circle(surface, color, center, radius, 1,
-                                           1, 1, 1, "d")
+            bounds_rect = self.draw_circle(
+                surface, color, center, radius, 1, 1, 1, 1, "d"
+            )
 
         with self.assertRaises(TypeError):
             # Invalid width.
@@ -5127,7 +5212,7 @@ class DrawCircleMixin(object):
                 "draw_top_right": True,
                 "draw_top_left": True,
                 "draw_bottom_left": True,
-                "draw_bottom_right": True
+                "draw_bottom_right": True,
             },
             {
                 "surface": surface,
@@ -5138,7 +5223,7 @@ class DrawCircleMixin(object):
                 "draw_top_right": True,
                 "draw_top_left": True,
                 "draw_bottom_left": True,
-                "draw_bottom_right": True
+                "draw_bottom_right": True,
             },
             {
                 "surface": surface,
@@ -5149,7 +5234,7 @@ class DrawCircleMixin(object):
                 "draw_top_right": True,
                 "draw_top_left": True,
                 "draw_bottom_left": True,
-                "draw_bottom_right": True
+                "draw_bottom_right": True,
             },
             {
                 "surface": surface,
@@ -5160,7 +5245,7 @@ class DrawCircleMixin(object):
                 "draw_top_right": True,
                 "draw_top_left": True,
                 "draw_bottom_left": True,
-                "draw_bottom_right": True
+                "draw_bottom_right": True,
             },
             {
                 "surface": surface,
@@ -5171,7 +5256,7 @@ class DrawCircleMixin(object):
                 "draw_top_right": True,
                 "draw_top_left": True,
                 "draw_bottom_left": True,
-                "draw_bottom_right": True
+                "draw_bottom_right": True,
             },
             {
                 "surface": surface,
@@ -5182,7 +5267,7 @@ class DrawCircleMixin(object):
                 "draw_top_right": "True",  # Invalid draw_top_right
                 "draw_top_left": True,
                 "draw_bottom_left": True,
-                "draw_bottom_right": True
+                "draw_bottom_right": True,
             },
             {
                 "surface": surface,
@@ -5191,9 +5276,9 @@ class DrawCircleMixin(object):
                 "radius": radius,
                 "width": width,
                 "draw_top_right": True,
-                "draw_top_left": 'True',  # Invalid draw_top_left
+                "draw_top_left": "True",  # Invalid draw_top_left
                 "draw_bottom_left": True,
-                "draw_bottom_right": True
+                "draw_bottom_right": True,
             },
             {
                 "surface": surface,
@@ -5204,7 +5289,7 @@ class DrawCircleMixin(object):
                 "draw_top_right": True,
                 "draw_top_left": True,
                 "draw_bottom_left": 3.14,  # Invalid draw_bottom_left
-                "draw_bottom_right": True
+                "draw_bottom_right": True,
             },
             {
                 "surface": surface,
@@ -5215,7 +5300,7 @@ class DrawCircleMixin(object):
                 "draw_top_right": True,
                 "draw_top_left": True,
                 "draw_bottom_left": True,
-                "draw_bottom_right": "quadrant"   # Invalid draw_bottom_right
+                "draw_bottom_right": "quadrant",  # Invalid draw_bottom_right
             },
         ]
 
@@ -5240,7 +5325,7 @@ class DrawCircleMixin(object):
                 "draw_top_right": True,
                 "draw_top_left": True,
                 "draw_bottom_left": True,
-                "draw_bottom_right": True
+                "draw_bottom_right": True,
             },
             {
                 "surface": surface,
@@ -5275,12 +5360,20 @@ class DrawCircleMixin(object):
             "draw_top_right": True,
             "draw_top_left": True,
             "draw_bottom_left": True,
-            "draw_bottom_right": True
+            "draw_bottom_right": True,
         }
 
-        for name in ("surface", "color", "center", "radius", "width",
-                     "draw_top_right", "draw_top_left", "draw_bottom_left",
-                     "draw_bottom_right"):
+        for name in (
+            "surface",
+            "color",
+            "center",
+            "radius",
+            "width",
+            "draw_top_right",
+            "draw_top_left",
+            "draw_bottom_left",
+            "draw_bottom_right",
+        ):
             kwargs.pop(name)
 
             if "surface" == name:
@@ -5301,15 +5394,39 @@ class DrawCircleMixin(object):
                 )
             elif "draw_top_left" == name:
                 bounds_rect = self.draw_circle(
-                    surface, color, center, radius, width, draw_top_right, draw_top_left, **kwargs
+                    surface,
+                    color,
+                    center,
+                    radius,
+                    width,
+                    draw_top_right,
+                    draw_top_left,
+                    **kwargs,
                 )
             elif "draw_bottom_left" == name:
                 bounds_rect = self.draw_circle(
-                    surface, color, center, radius, width, draw_top_right, draw_top_left, draw_bottom_left, **kwargs
+                    surface,
+                    color,
+                    center,
+                    radius,
+                    width,
+                    draw_top_right,
+                    draw_top_left,
+                    draw_bottom_left,
+                    **kwargs,
                 )
             else:
                 bounds_rect = self.draw_circle(
-                    surface, color, center, radius, width, draw_top_right, draw_top_left, draw_bottom_left, draw_bottom_right, **kwargs
+                    surface,
+                    color,
+                    center,
+                    radius,
+                    width,
+                    draw_top_right,
+                    draw_top_left,
+                    draw_bottom_left,
+                    draw_bottom_right,
+                    **kwargs,
                 )
 
             self.assertIsInstance(bounds_rect, pygame.Rect)
@@ -5331,7 +5448,7 @@ class DrawCircleMixin(object):
             "draw_top_right": True,
             "draw_top_left": True,
             "draw_bottom_left": True,
-            "draw_bottom_right": True
+            "draw_bottom_right": True,
         }
 
         for width in (-100, -10, -1, 0, 1, 10, 100):
@@ -5359,7 +5476,7 @@ class DrawCircleMixin(object):
             "draw_top_right": True,
             "draw_top_left": True,
             "draw_bottom_left": True,
-            "draw_bottom_right": True
+            "draw_bottom_right": True,
         }
 
         for radius in (-10, -1, 0, 1, 10):
@@ -5386,7 +5503,7 @@ class DrawCircleMixin(object):
             "draw_top_right": True,
             "draw_top_left": True,
             "draw_bottom_left": True,
-            "draw_bottom_right": True
+            "draw_bottom_right": True,
         }
         x, y = 2, 2  # center position
 
@@ -5419,7 +5536,7 @@ class DrawCircleMixin(object):
             "draw_top_right": True,
             "draw_top_left": True,
             "draw_bottom_left": True,
-            "draw_bottom_right": True
+            "draw_bottom_right": True,
         }
         greens = (
             (0, 255, 0),
@@ -5453,7 +5570,7 @@ class DrawCircleMixin(object):
             "draw_top_right": True,
             "draw_top_left": True,
             "draw_bottom_left": True,
-            "draw_bottom_right": True
+            "draw_bottom_right": True,
         }
 
         for expected_color in (2.3, self):
@@ -5473,7 +5590,7 @@ class DrawCircleMixin(object):
             draw_top_right=True,
             draw_top_left=True,
             draw_bottom_left=True,
-            draw_bottom_right=True
+            draw_bottom_right=True,
         )
 
         draw.circle(
@@ -5485,7 +5602,7 @@ class DrawCircleMixin(object):
             draw_top_right=True,
             draw_top_left=True,
             draw_bottom_left=True,
-            draw_bottom_right=True
+            draw_bottom_right=True,
         )
 
         draw.circle(pygame.Surface((2, 2)), (0, 0, 0, 50), (1.3, 1.3), 1.2)
@@ -5546,12 +5663,20 @@ class DrawCircleMixin(object):
                     # Calculating the expected_rect after the circle is
                     # drawn (it uses what is actually drawn).
                     expected_rect = create_bounding_rect(surface, surf_color, pos)
+
                     # print("pos:%s:, radius:%s:, thickness:%s:" % (pos, radius, thickness))
-                    self.assertEqual(bounding_rect, expected_rect)
+                    # self.assertEqual(bounding_rect, expected_rect)
+                    with self.subTest(
+                        surface=surface,
+                        circle_color=circle_color,
+                        pos=pos,
+                        radius=radius,
+                        thickness=thickness,
+                    ):
+                        self.assertEqual(bounding_rect, expected_rect)
 
     def test_circle_negative_radius(self):
-        """ Ensures negative radius circles return zero sized bounding rect.
-        """
+        """Ensures negative radius circles return zero sized bounding rect."""
         surf = pygame.Surface((200, 200))
         color = (0, 0, 0, 50)
         center = surf.get_height() // 2, surf.get_height() // 2
@@ -5560,14 +5685,13 @@ class DrawCircleMixin(object):
         self.assertEqual(bounding_rect.size, (0, 0))
 
     def test_circle_zero_radius(self):
-        """ Ensures zero radius circles does not draw a center pixel.
+        """Ensures zero radius circles does not draw a center pixel.
 
         NOTE: This is backwards incompatible behaviour with 1.9.x.
         """
         surf = pygame.Surface((200, 200))
         circle_color = pygame.Color("red")
         surf_color = pygame.Color("black")
-        surf.fill((0, 0, 0))
         center = (100, 100)
         radius = 0
         width = 1
@@ -5653,7 +5777,7 @@ class DrawCircleMixin(object):
                 self.assertEqual(surface.get_at(pt), surface_color)
 
     def test_circle__diameter(self):
-        """ Ensures draw circle is twice size of radius high and wide."""
+        """Ensures draw circle is twice size of radius high and wide."""
         surf = pygame.Surface((200, 200))
         color = (0, 0, 0, 50)
         center = surf.get_height() // 2, surf.get_height() // 2
@@ -5663,6 +5787,56 @@ class DrawCircleMixin(object):
             bounding_rect = self.draw_circle(surf, color, center, radius, width)
             self.assertEqual(bounding_rect.width, radius * 2)
             self.assertEqual(bounding_rect.height, radius * 2)
+
+    def test_x_bounds(self):
+        """ensures a circle is drawn properly when there is a negative x, or a big x."""
+
+        surf = pygame.Surface((200, 200))
+        bgcolor = (0, 0, 0, 255)
+        surf.fill(bgcolor)
+        color = (255, 0, 0, 255)
+        width = 1
+        radius = 10
+
+        where = (0, 30)
+        bounding_rect1 = self.draw_circle(surf, color, where, radius=radius)
+        self.assertEqual(
+            bounding_rect1,
+            pygame.Rect(0, where[1] - radius, where[0] + radius, radius * 2),
+        )
+        self.assertEqual(
+            surf.get_at((where[0] if where[0] > 0 else 0, where[1])), color
+        )
+        self.assertEqual(surf.get_at((where[0] + radius + 1, where[1])), bgcolor)
+        self.assertEqual(surf.get_at((where[0] + radius - 1, where[1])), color)
+
+        surf.fill(bgcolor)
+        where = (-1e30, 80)
+        bounding_rect1 = self.draw_circle(surf, color, where, radius=radius)
+        self.assertEqual(bounding_rect1, pygame.Rect(where[0], where[1], 0, 0))
+        self.assertEqual(surf.get_at((0 + radius, where[1])), bgcolor)
+
+        surf.fill(bgcolor)
+        where = (surf.get_width() + radius * 2, 80)
+        bounding_rect1 = self.draw_circle(surf, color, where, radius=radius)
+        self.assertEqual(bounding_rect1, pygame.Rect(where[0], where[1], 0, 0))
+        self.assertEqual(surf.get_at((0, where[1])), bgcolor)
+        self.assertEqual(surf.get_at((0 + radius // 2, where[1])), bgcolor)
+        self.assertEqual(surf.get_at((surf.get_width() - 1, where[1])), bgcolor)
+        self.assertEqual(surf.get_at((surf.get_width() - radius, where[1])), bgcolor)
+
+        surf.fill(bgcolor)
+        where = (-1, 80)
+        bounding_rect1 = self.draw_circle(surf, color, where, radius=radius)
+        self.assertEqual(
+            bounding_rect1,
+            pygame.Rect(0, where[1] - radius, where[0] + radius, radius * 2),
+        )
+        self.assertEqual(
+            surf.get_at((where[0] if where[0] > 0 else 0, where[1])), color
+        )
+        self.assertEqual(surf.get_at((where[0] + radius, where[1])), bgcolor)
+        self.assertEqual(surf.get_at((where[0] + radius - 1, where[1])), color)
 
 
 class DrawCircleTest(DrawCircleMixin, DrawTestCase):
@@ -5687,7 +5861,7 @@ class DrawCircleTest(DrawCircleMixin, DrawTestCase):
 ### Arc Testing ###############################################################
 
 
-class DrawArcMixin(object):
+class DrawArcMixin:
     """Mixin tests for drawing arcs.
 
     This class contains all the general arc drawing tests.
@@ -5992,7 +6166,7 @@ class DrawArcMixin(object):
         }
 
         for width in (-50, -10, -3, -2, -1, 0, 1, 2, 3, 10, 50):
-            msg = "width={}".format(width)
+            msg = f"width={width}"
             surface.fill(surface_color)  # Clear for each test.
             kwargs["width"] = width
             expected_color = arc_color if width > 0 else surface_color
@@ -6020,7 +6194,7 @@ class DrawArcMixin(object):
         }
 
         for stop_angle in (-10, -5.5, -1, 0, 1, 5.5, 10):
-            msg = "stop_angle={}".format(stop_angle)
+            msg = f"stop_angle={stop_angle}"
             surface.fill(surface_color)  # Clear for each test.
             kwargs["stop_angle"] = stop_angle
 
@@ -6047,7 +6221,7 @@ class DrawArcMixin(object):
         }
 
         for start_angle in (-10.0, -5.5, -1, 0, 1, 5.5, 10.0):
-            msg = "start_angle={}".format(start_angle)
+            msg = f"start_angle={start_angle}"
             surface.fill(surface_color)  # Clear for each test.
             kwargs["start_angle"] = start_angle
 
@@ -6139,9 +6313,40 @@ class DrawArcMixin(object):
             with self.assertRaises(TypeError):
                 bounds_rect = self.draw_arc(**kwargs)
 
-    def todo_test_arc(self):
+    def test_arc(self):
         """Ensure draw arc works correctly."""
-        self.fail()
+        black = pygame.Color("black")
+        red = pygame.Color("red")
+
+        # create an image object of width 100, height 150, filled with black.
+        surface = pygame.Surface((100, 150))
+        surface.fill(black)
+
+        # rectangle that contains for the ellipse arc.
+        # 0 pixel from left, 0 pixel from top
+        # 80 pixels wide, 40 pixels high
+        rect = (0, 0, 80, 40)
+
+        # angle of the arc in radians
+        start_angle = 0.0
+        stop_angle = 3.14
+
+        # thickness, and it grows inward from the rectangle
+        width = 3
+
+        # draw an elliptical arc
+        pygame.draw.arc(surface, red, rect, start_angle, stop_angle, width)
+
+        # Save the drawn arc
+        pygame.image.save(surface, "arc.png")
+
+        # arc is red
+        x = 20
+        for y in range(2, 5):
+            self.assertEqual(surface.get_at((x, y)), red)
+
+        # the rest area in surface is black
+        self.assertEqual(surface.get_at((0, 0)), black)
 
     def test_arc__bounding_rect(self):
         """Ensures draw arc returns the correct bounding rect.
@@ -6198,7 +6403,7 @@ class DrawArcMixin(object):
                             self.assertEqual(
                                 bounding_rect,
                                 expected_rect,
-                                "thickness={}".format(thickness),
+                                f"thickness={thickness}",
                             )
 
     def test_arc__surface_clip(self):
@@ -6324,7 +6529,7 @@ class DrawModuleTest(unittest.TestCase):
 
     def test_color_validation(self):
         surf = pygame.Surface((10, 10))
-        colors = 123456, (1, 10, 100), RED, '#ab12df', 'red'
+        colors = 123456, (1, 10, 100), RED, "#ab12df", "red"
         points = ((0, 0), (1, 1), (1, 0))
 
         # 1. valid colors
